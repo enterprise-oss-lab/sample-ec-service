@@ -1,0 +1,30 @@
+name: CI - Go
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "services/**/*.go"
+      - "services/**/go.mod"
+      - "services/**/go.sum"
+      - ".github/workflows/ci-go.yml"
+  pull_request:
+    paths:
+      - "services/**/*.go"
+      - "services/**/go.mod"
+      - "services/**/go.sum"
+      - ".github/workflows/ci-go.yml"
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.filter.outputs.changes }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            inventry:
+              - "services/inventry/**"
