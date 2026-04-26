@@ -25,6 +25,18 @@ services:
       timeout: 10s
       retries: 5
       start_period: 30s
+  inventory-postgres:
+    container_name: inventory-postgres
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: inventory
+      POSTGRES_PASSWORD: password  # pragma: allowlist secret
+      POSTGRES_DB: inventory
+    ports:
+      - "5432:5432"
+    volumes:
+      - inventory_postgres_data:/var/lib/postgresql/data
 
 volumes:
   kafka-data:
+  inventory_postgres_data:
