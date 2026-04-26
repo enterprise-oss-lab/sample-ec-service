@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS inventories (
+    id    INTEGER PRIMARY KEY,
+    name  TEXT    NOT NULL,
+    count INTEGER NOT NULL DEFAULT 0
+);
