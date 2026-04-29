@@ -19,7 +19,7 @@ jobs:
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
-      services: ${{ steps.filter.outputs.changes }}
+      inventory: ${{ steps.filter.outputs.inventory }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -28,3 +28,21 @@ jobs:
           filters: |
             inventory:
               - "services/inventory/**"
+
+  test-inventory:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.inventory == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/inventory
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: services/inventory/go.mod
+          cache-dependency-path: services/inventory/go.sum
+      - name: Download dependencies
+        run: go mod download
+      - name: Run tests
+        run: go test ./...
