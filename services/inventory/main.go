@@ -2,14 +2,21 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
+	"net/http"
 	"os"
+	"os/signal"
+	"sync"
+	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"enterprise-oss-lab/sample-ec-service/inventry/config"
-	"enterprise-oss-lab/sample-ec-service/inventry/internal/handler"
+	httphandler "enterprise-oss-lab/sample-ec-service/inventry/internal/adapter/http"
+	kafkaadapter "enterprise-oss-lab/sample-ec-service/inventry/internal/adapter/kafka"
 	"enterprise-oss-lab/sample-ec-service/inventry/internal/repository/postgres"
 	"enterprise-oss-lab/sample-ec-service/inventry/internal/usecase"
 )
@@ -30,13 +37,51 @@ func main() {
 
 	repo := postgres.NewInventoryRepository(pool)
 	uc := usecase.NewInventoryUsecase(repo)
-	h := handler.NewInventoryHandler(uc)
 
+	producer, err := kafkaadapter.NewProducer(cfg.Kafka.Brokers, cfg.Kafka.ResultTopic)
+	if err != nil {
+		log.Fatalf("failed to create kafka producer: %v", err)
+	}
+	defer producer.Close()
+
+	consumer, err := kafkaadapter.NewConsumer(cfg.Kafka.Brokers, cfg.Kafka.RequestTopic, cfg.Kafka.ConsumerGroup, uc, producer)
+	if err != nil {
+		log.Fatalf("failed to create kafka consumer: %v", err)
+	}
+	defer consumer.Close()
+
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := consumer.Run(ctx); err != nil {
+			log.Printf("consumer exited: %v", err)
+		}
+	}()
+
+	h := httphandler.NewInventoryHandler(uc)
 	r := gin.Default()
 	h.RegisterRoutes(r)
 
+	srv := &http.Server{Addr: ":8080", Handler: r}
+
+	go func() {
+		<-ctx.Done()
+		shutCtx, shutCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer shutCancel()
+		if err := srv.Shutdown(shutCtx); err != nil {
+			log.Printf("server shutdown error: %v", err)
+		}
+	}()
+
 	log.Println("starting inventory service on :8080")
-	if err := r.Run(":8080"); err != nil {
+	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatalf("server error: %v", err)
 	}
+
+	wg.Wait()
+	log.Println("shutdown complete")
 }

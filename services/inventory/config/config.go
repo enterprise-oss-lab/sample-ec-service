@@ -1,9 +1,20 @@
 package config
 
-import "os"
+import (
+	"os"
+	"strings"
+)
+
+type KafkaConfig struct {
+	Brokers       []string
+	RequestTopic  string
+	ResultTopic   string
+	ConsumerGroup string
+}
 
 type Config struct {
 	DatabaseURL string
+	Kafka       KafkaConfig
 }
 
 func Load() Config {
@@ -11,5 +22,34 @@ func Load() Config {
 	if dsn == "" {
 		dsn = "postgres://inventory:password@localhost:5432/inventory?sslmode=disable" // pragma: allowlist secret
 	}
-	return Config{DatabaseURL: dsn}
+
+	brokers := os.Getenv("KAFKA_BROKERS")
+	if brokers == "" {
+		brokers = "localhost:9092"
+	}
+
+	requestTopic := os.Getenv("KAFKA_REQUEST_TOPIC")
+	if requestTopic == "" {
+		requestTopic = "inventory.reservation.requests"
+	}
+
+	resultTopic := os.Getenv("KAFKA_RESULT_TOPIC")
+	if resultTopic == "" {
+		resultTopic = "inventory.reservation.results"
+	}
+
+	consumerGroup := os.Getenv("KAFKA_CONSUMER_GROUP")
+	if consumerGroup == "" {
+		consumerGroup = "inventory-service"
+	}
+
+	return Config{
+		DatabaseURL: dsn,
+		Kafka: KafkaConfig{
+			Brokers:       strings.Split(brokers, ","),
+			RequestTopic:  requestTopic,
+			ResultTopic:   resultTopic,
+			ConsumerGroup: consumerGroup,
+		},
+	}
 }
