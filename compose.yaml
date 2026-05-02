@@ -26,5 +26,39 @@ services:
       retries: 5
       start_period: 30s
 
+  order-db:
+    image: postgres:17-alpine
+    container_name: order-db
+    environment:
+      POSTGRES_USER: order
+      POSTGRES_PASSWORD: password  # pragma: allowlist secret
+      POSTGRES_DB: order
+    volumes:
+      - order-db-data:/var/lib/postgresql/data
+      - ./services/order/db/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U order -d order"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  order-service:
+    build: ./services/order
+    container_name: order-service
+    depends_on:
+      kafka:
+        condition: service_healthy
+      order-db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://order:password@order-db:5432/order  # pragma: allowlist secret
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_REQUEST_TOPIC: inventory.reservation.requests
+      KAFKA_RESULT_TOPIC: inventory.reservation.results
+      KAFKA_CONSUMER_GROUP: order-service
+    ports:
+      - "8081:8080"
+
 volumes:
   kafka-data:
+  order-db-data:
