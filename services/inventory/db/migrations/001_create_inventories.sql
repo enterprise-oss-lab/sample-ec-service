@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS inventories (
     id    INTEGER PRIMARY KEY,
     name  TEXT    NOT NULL,
-    count INTEGER NOT NULL DEFAULT 0
+    count INTEGER NOT NULL DEFAULT 0 CHECK (count >= 0)
 );

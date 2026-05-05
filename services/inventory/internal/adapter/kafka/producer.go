@@ -17,7 +17,7 @@ type Producer struct {
 func NewProducer(brokers []string, topic string) (*Producer, error) {
 	p, err := kafka.NewProducer(&kafka.ConfigMap{
 		"bootstrap.servers": strings.Join(brokers, ","),
-		"acks":              "1",
+		"acks":              "all",
 	})
 	if err != nil {
 		return nil, fmt.Errorf("new producer: %w", err)

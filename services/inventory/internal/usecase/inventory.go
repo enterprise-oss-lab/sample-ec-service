@@ -26,23 +26,27 @@ func (u *inventoryUsecase) GetInventory(ctx context.Context, id int) (*domain.In
 }
 
 func (u *inventoryUsecase) Reserve(ctx context.Context, id int, quantity int) error {
-	inv, err := u.repo.FindByID(ctx, id)
-	if err != nil {
-		return err
-	}
-	if err := inv.Reserve(quantity); err != nil {
-		return err
-	}
-	return u.repo.Save(ctx, inv)
+	return u.repo.RunInTx(ctx, func(txRepo domain.InventoryRepository) error {
+		inv, err := txRepo.FindByID(ctx, id)
+		if err != nil {
+			return err
+		}
+		if err := inv.Reserve(quantity); err != nil {
+			return err
+		}
+		return txRepo.Save(ctx, inv)
+	})
 }
 
 func (u *inventoryUsecase) Restock(ctx context.Context, id int, quantity int) error {
-	inv, err := u.repo.FindByID(ctx, id)
-	if err != nil {
-		return err
-	}
-	if err := inv.Restock(quantity); err != nil {
-		return err
-	}
-	return u.repo.Save(ctx, inv)
+	return u.repo.RunInTx(ctx, func(txRepo domain.InventoryRepository) error {
+		inv, err := txRepo.FindByID(ctx, id)
+		if err != nil {
+			return err
+		}
+		if err := inv.Restock(quantity); err != nil {
+			return err
+		}
+		return txRepo.Save(ctx, inv)
+	})
 }

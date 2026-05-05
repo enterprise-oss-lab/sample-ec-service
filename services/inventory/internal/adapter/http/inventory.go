@@ -39,7 +39,7 @@ func (h *InventoryHandler) GetInventory(c *gin.Context) {
 			c.JSON(http.StatusNotFound, errorResponse(err.Error()))
 			return
 		}
-		c.JSON(http.StatusInternalServerError, errorResponse(err.Error()))
+		c.JSON(http.StatusInternalServerError, errorResponse("internal server error"))
 		return
 	}
 
@@ -68,7 +68,11 @@ func (h *InventoryHandler) Reserve(c *gin.Context) {
 			c.JSON(http.StatusNotFound, errorResponse(err.Error()))
 			return
 		}
-		c.JSON(http.StatusUnprocessableEntity, errorResponse(err.Error()))
+		if errors.Is(err, domain.ErrInsufficientStock) || errors.Is(err, domain.ErrInvalidQuantity) {
+			c.JSON(http.StatusUnprocessableEntity, errorResponse(err.Error()))
+			return
+		}
+		c.JSON(http.StatusInternalServerError, errorResponse("internal server error"))
 		return
 	}
 
@@ -93,7 +97,11 @@ func (h *InventoryHandler) Restock(c *gin.Context) {
 			c.JSON(http.StatusNotFound, errorResponse(err.Error()))
 			return
 		}
-		c.JSON(http.StatusUnprocessableEntity, errorResponse(err.Error()))
+		if errors.Is(err, domain.ErrInvalidQuantity) {
+			c.JSON(http.StatusUnprocessableEntity, errorResponse(err.Error()))
+			return
+		}
+		c.JSON(http.StatusInternalServerError, errorResponse("internal server error"))
 		return
 	}
 

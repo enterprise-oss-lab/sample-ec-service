@@ -26,6 +26,10 @@ func (s *stubInventoryRepository) Save(_ context.Context, inv *domain.Inventory)
 	return s.saveErr
 }
 
+func (s *stubInventoryRepository) RunInTx(_ context.Context, fn func(domain.InventoryRepository) error) error {
+	return fn(s)
+}
+
 func TestGetInventory(t *testing.T) {
 	tests := []struct {
 		name      string
