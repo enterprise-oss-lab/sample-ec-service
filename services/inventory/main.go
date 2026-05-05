@@ -66,7 +66,8 @@ func main() {
 	r := gin.Default()
 	h.RegisterRoutes(r)
 
-	srv := &http.Server{Addr: ":8080", Handler: r}
+	addr := ":" + cfg.Port
+	srv := &http.Server{Addr: addr, Handler: r}
 
 	go func() {
 		<-ctx.Done()
@@ -77,7 +78,7 @@ func main() {
 		}
 	}()
 
-	log.Println("starting inventory service on :8080")
+	log.Printf("starting inventory service on %s", addr)
 	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatalf("server error: %v", err)
 	}

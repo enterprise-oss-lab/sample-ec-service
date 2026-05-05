@@ -14,10 +14,16 @@ type KafkaConfig struct {
 
 type Config struct {
 	DatabaseURL string
+	Port        string
 	Kafka       KafkaConfig
 }
 
 func Load() Config {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
 		dsn = "postgres://inventory:password@localhost:5432/inventory?sslmode=disable" // pragma: allowlist secret
@@ -45,6 +51,7 @@ func Load() Config {
 
 	return Config{
 		DatabaseURL: dsn,
+		Port:        port,
 		Kafka: KafkaConfig{
 			Brokers:       strings.Split(brokers, ","),
 			RequestTopic:  requestTopic,
