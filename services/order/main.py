@@ -39,7 +39,7 @@ async def run() -> None:
     )
 
     app = FastAPI(title="Order Service")
-    app.include_router(create_router(usecase))
+    app.include_router(create_router(usecase), prefix="/order")
 
     server_config = uvicorn.Config(app, host="0.0.0.0", port=8080, log_level="info")
     server = uvicorn.Server(server_config)
