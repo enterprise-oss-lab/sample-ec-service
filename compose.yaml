@@ -3,14 +3,14 @@ services:
     image: apache/kafka:4.1.1
     container_name: kafka
     ports:
-      - "9092:9092"
+      - "19092:19092"
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,CONTROLLER:PLAINTEXT
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
@@ -25,6 +25,43 @@ services:
       timeout: 10s
       retries: 5
       start_period: 30s
+  inventory-postgres:
+    container_name: inventory-postgres
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: inventory
+      POSTGRES_PASSWORD: password  # pragma: allowlist secret
+      POSTGRES_DB: inventory
+    ports:
+      - "5432:5432"
+    volumes:
+      - inventory_postgres_data:/var/lib/postgresql/data
+      - ./services/inventory/db/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inventory -d inventory"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  inventory:
+    container_name: inventory
+    build:
+      context: ./services/inventory
+      dockerfile: Dockerfile
+    ports:
+      - "18080:8080"
+    environment:
+      DATABASE_URL: postgres://inventory:password@inventory-postgres:5432/inventory?sslmode=disable  # pragma: allowlist secret
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_REQUEST_TOPIC: inventory.reservation.requests
+      KAFKA_RESULT_TOPIC: inventory.reservation.results
+      KAFKA_CONSUMER_GROUP: inventory-service
+    depends_on:
+      inventory-postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
 
   order-db:
     image: postgres:17-alpine
@@ -61,4 +98,5 @@ services:
 
 volumes:
   kafka-data:
+  inventory_postgres_data:
   order-db-data:
