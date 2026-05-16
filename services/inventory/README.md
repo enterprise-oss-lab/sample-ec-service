@@ -11,28 +11,14 @@
 docker compose up -d
 ```
 
-PostgreSQL と Kafka (KRaft) が起動する。Kafka の起動完了は以下で確認できる。
+Inventory Service と PostgreSQL 、 Kafka (KRaft) が起動する。Kafka の起動完了は以下で確認できる。
 
 ```bash
 docker compose ps
-# kafka の Status が healthy になるまで待つ（~30秒）
+# kafka の Status が healthy になるまで待つ
 ```
 
-### 2. DB を初期化
-
-```bash
-# テーブル作成
-docker compose exec -T inventory-postgres \
-  psql -U inventory -d inventory \
-  -f - < services/inventory/db/migrations/001_create_inventories.sql
-
-# 初期データ投入
-docker compose exec -T inventory-postgres \
-  psql -U inventory -d inventory \
-  -f - < services/inventory/db/migrations/002_seed_inventories.sql
-```
-
-初期化済みか確認する場合:
+### 2. DB の中身を確認
 
 ```bash
 docker compose exec inventory-postgres \
@@ -40,26 +26,14 @@ docker compose exec inventory-postgres \
 ```
 
 ```
- id |      name        | count
-----+------------------+-------
-  1 | Tシャツ（M）     |   100
-  2 | Tシャツ（L）     |    80
-  3 | デニムパンツ     |    50
-  4 | スニーカー（26cm）|    30
-  5 | キャップ         |   200
-```
-
-### 3. サービスを起動
-
-
-
-```bash
-cd services/inventory
-go run .
-```
-
-```
-starting inventory service on :8080
+ id |        name        | count
+----+--------------------+-------
+  1 | Tシャツ（M）       |   100
+  2 | Tシャツ（L）       |    80
+  3 | デニムパンツ       |    50
+  4 | スニーカー（26cm） |    30
+  5 | キャップ           |   200
+(5 rows)
 ```
 
 ---

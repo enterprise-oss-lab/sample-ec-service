@@ -51,7 +51,7 @@ PENDING ─→ CONFIRMED   (在庫予約成功)
 
 | 変数名 | デフォルト | 説明 |
 |--------|-----------|------|
-| `DATABASE_URL` | `postgresql://order:password@localhost:5432/order` | PostgreSQL 接続文字列 |
+| `DATABASE_URL` | `postgresql://order:password@localhost:5432/order` | PostgreSQL 接続文字列 | # pragma: allowlist secret
 | `KAFKA_BROKERS` | (必須) | Kafka ブローカーアドレス |
 | `KAFKA_REQUEST_TOPIC` | `inventory.reservation.requests` | 予約リクエストトピック |
 | `KAFKA_RESULT_TOPIC` | `inventory.reservation.results` | 予約結果トピック |
@@ -88,27 +88,13 @@ python main.py
 docker compose up
 ```
 
-### 2. Kafka topic を作成する
-
-初回起動直後は topic がまだ存在せず、consumer / producer が `UNKNOWN_TOPIC_OR_PARTITION` になることがある。
-動作確認の前に、別ターミナルで必要な topic を明示的に作成しておく。
+### 2. Kafka topic の確認
 
 ```bash
-docker exec kafka /opt/kafka/bin/kafka-topics.sh \
-  --bootstrap-server localhost:9092 \
-  --create \
-  --if-not-exists \
-  --topic inventory.reservation.requests \
-  --partitions 1 \
-  --replication-factor 1
-
-docker exec kafka /opt/kafka/bin/kafka-topics.sh \
-  --bootstrap-server localhost:9092 \
-  --create \
-  --if-not-exists \
-  --topic inventory.reservation.results \
-  --partitions 1 \
-  --replication-factor 1
+docker compose exec kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list
+__consumer_offsets
+inventory.reservation.requests
+inventory.reservation.results
 ```
 
 ### 3. 注文を作成する
