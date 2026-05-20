@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, type ReactNode } from "react"
 import { NavLink } from "react-router"
 
 const NAV_ITEMS = [
@@ -7,18 +7,6 @@ const NAV_ITEMS = [
   { to: "/orders", label: "注文履歴", end: false },
 ]
 
-const C = {
-  bg: "#0c0e10",
-  bgScroll: "rgba(12, 14, 16, 0.92)",
-  text: "#c2b8ae",
-  textMuted: "#7a726a",
-  accent: "#c8a46a",
-  surface: "#161a1e",
-  border: "rgba(200, 164, 106, 0.12)",
-  borderSubtle: "rgba(255, 255, 255, 0.05)",
-} as const
-
-// Inline SVG icons
 const SearchIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="11" cy="11" r="8" />
@@ -45,7 +33,7 @@ interface IconButtonProps {
   onClick?: () => void
   "aria-label": string
   active?: boolean
-  children: React.ReactNode
+  children: ReactNode
   className?: string
 }
 
@@ -53,10 +41,7 @@ const IconButton = ({ onClick, "aria-label": ariaLabel, active, children, classN
   <button
     onClick={onClick}
     aria-label={ariaLabel}
-    className={`relative p-2.5 transition-all duration-200 cursor-pointer ${className}`}
-    style={{ color: active ? C.accent : C.text }}
-    onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.color = C.accent }}
-    onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.color = C.text }}
+    className={`relative p-2.5 transition-colors duration-200 cursor-pointer hover:text-gold ${active ? "text-gold" : "text-soft"} ${className}`}
   >
     {children}
   </button>
@@ -66,7 +51,6 @@ export const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
-  // Replace with real cart context/state
   const [cartCount] = useState(2)
   const searchRef = useRef<HTMLInputElement>(null)
 
@@ -85,7 +69,6 @@ export const Header = () => {
     return () => { document.body.style.overflow = "" }
   }, [menuOpen])
 
-  // Load Cormorant Garamond for the logo
   useEffect(() => {
     const id = "header-font-cormorant"
     if (document.getElementById(id)) return
@@ -115,91 +98,47 @@ export const Header = () => {
     <>
       {/* ─── Fixed header ─── */}
       <header
+        className={`fixed inset-x-0 top-0 z-50 border-b ${
+          scrolled ? "bg-canvas/92 border-gold/12" : "bg-canvas border-white/5"
+        }`}
         style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 50,
-          backgroundColor: scrolled ? C.bgScroll : C.bg,
           backdropFilter: scrolled ? "blur(16px) saturate(1.4)" : "none",
           WebkitBackdropFilter: scrolled ? "blur(16px) saturate(1.4)" : "none",
-          borderBottom: `1px solid ${scrolled ? C.border : C.borderSubtle}`,
           transition: "background-color 0.4s ease, border-color 0.4s ease, backdrop-filter 0.4s ease",
         }}
       >
-        <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "0 1.5rem" }}>
+        <div className="max-w-[1280px] mx-auto px-6">
           {/* Main row */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: "64px" }}>
+          <div className="flex items-center justify-between h-16">
 
             {/* ── Logo ── */}
-            <NavLink
-              to="/"
-              onClick={closeAll}
-              style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "10px" }}
-            >
-              {/* Diamond mark */}
+            <NavLink to="/" onClick={closeAll} className="no-underline flex items-center gap-[10px]">
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M10 1L19 10L10 19L1 10Z" stroke={C.accent} strokeWidth="1.5" fill="none" />
-                <path d="M10 5L15 10L10 15L5 10Z" fill={C.accent} opacity="0.35" />
+                <path d="M10 1L19 10L10 19L1 10Z" stroke="#c8a46a" strokeWidth="1.5" fill="none" />
+                <path d="M10 5L15 10L10 15L5 10Z" fill="#c8a46a" opacity="0.35" />
               </svg>
-              <span style={{
-                fontFamily: "'Cormorant Garamond', serif",
-                fontSize: "1.35rem",
-                fontWeight: 600,
-                color: "#f0ebe4",
-                letterSpacing: "0.18em",
-                lineHeight: 1,
-              }}>
+              <span className="font-display text-[1.35rem] font-semibold text-pale tracking-[0.18em] leading-none">
                 MAISON
               </span>
             </NavLink>
 
             {/* ── Desktop nav ── */}
-            <nav style={{ display: "flex", alignItems: "center", gap: "2rem" }} className="hidden md:flex">
+            <nav className="hidden md:flex items-center gap-8">
               {NAV_ITEMS.map(({ to, label, end }) => (
                 <NavLink
                   key={to}
                   to={to}
                   end={end}
                   onClick={closeAll}
-                  style={({ isActive }) => ({
-                    position: "relative",
-                    textDecoration: "none",
-                    fontSize: "0.8125rem",
-                    fontWeight: 500,
-                    letterSpacing: "0.09em",
-                    color: isActive ? C.accent : C.text,
-                    transition: "color 0.2s ease",
-                    paddingBottom: "4px",
-                  })}
-                  onMouseEnter={e => {
-                    const el = e.currentTarget as HTMLAnchorElement
-                    const line = el.querySelector(".nav-line") as HTMLElement
-                    if (line) line.style.width = "100%"
-                    el.style.color = C.accent
-                  }}
-                  onMouseLeave={e => {
-                    const el = e.currentTarget as HTMLAnchorElement
-                    const line = el.querySelector(".nav-line") as HTMLElement
-                    if (line && !el.getAttribute("aria-current")) line.style.width = "0%"
-                    if (!el.getAttribute("aria-current")) el.style.color = C.text
-                  }}
+                  className={({ isActive }) =>
+                    `group relative no-underline text-[0.8125rem] font-medium tracking-[0.09em] pb-1 transition-colors duration-200 hover:text-gold ${isActive ? "text-gold" : "text-soft"}`
+                  }
                 >
                   {({ isActive }) => (
                     <>
                       {label}
                       <span
-                        className="nav-line"
-                        style={{
-                          position: "absolute",
-                          bottom: 0,
-                          left: 0,
-                          height: "1px",
-                          width: isActive ? "100%" : "0%",
-                          backgroundColor: C.accent,
-                          transition: "width 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-                        }}
+                        className={`absolute bottom-0 left-0 h-px bg-gold transition-[width] duration-[250ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${isActive ? "w-full" : "w-0 group-hover:w-full"}`}
                       />
                     </>
                   )}
@@ -208,7 +147,7 @@ export const Header = () => {
             </nav>
 
             {/* ── Action icons ── */}
-            <div style={{ display: "flex", alignItems: "center", gap: "2px" }}>
+            <div className="flex items-center gap-[2px]">
               {/* Search toggle */}
               <IconButton onClick={toggleSearch} aria-label="検索" active={searchOpen}>
                 <SearchIcon />
@@ -218,9 +157,7 @@ export const Header = () => {
               <NavLink
                 to="/account"
                 onClick={closeAll}
-                style={{ color: C.text, display: "flex", padding: "10px" }}
-                onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = C.accent)}
-                onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = C.text)}
+                className="text-soft hover:text-gold flex p-[10px] transition-colors duration-200"
               >
                 <UserIcon />
               </NavLink>
@@ -229,29 +166,12 @@ export const Header = () => {
               <NavLink
                 to="/cart"
                 onClick={closeAll}
-                style={{ color: C.text, display: "flex", padding: "10px", position: "relative" }}
-                onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = C.accent)}
-                onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = C.text)}
+                className="text-soft hover:text-gold flex p-[10px] relative transition-colors duration-200"
                 aria-label={`カート (${cartCount}点)`}
               >
                 <BagIcon />
                 {cartCount > 0 && (
-                  <span style={{
-                    position: "absolute",
-                    top: "6px",
-                    right: "6px",
-                    width: "16px",
-                    height: "16px",
-                    borderRadius: "50%",
-                    backgroundColor: C.accent,
-                    color: C.bg,
-                    fontSize: "10px",
-                    fontWeight: 700,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    lineHeight: 1,
-                  }}>
+                  <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-gold text-canvas text-[10px] font-bold flex items-center justify-center leading-none">
                     {cartCount > 9 ? "9+" : cartCount}
                   </span>
                 )}
@@ -262,31 +182,18 @@ export const Header = () => {
                 onClick={toggleMenu}
                 aria-label={menuOpen ? "メニューを閉じる" : "メニューを開く"}
                 aria-expanded={menuOpen}
-                style={{
-                  display: "none",
-                  padding: "10px",
-                  cursor: "pointer",
-                  background: "none",
-                  border: "none",
-                }}
-                className="flex md:hidden"
+                className="flex md:hidden p-[10px] cursor-pointer bg-transparent border-none"
               >
-                <div style={{ width: "22px", height: "16px", position: "relative", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                <div className="w-[22px] h-4 relative flex flex-col justify-between">
                   {[
                     { transform: menuOpen ? "rotate(45deg) translate(3px, 3px)" : "none" },
                     { transform: menuOpen ? "scaleX(0)" : "scaleX(1)", transformOrigin: "right center" },
                     { transform: menuOpen ? "rotate(-45deg) translate(3px, -3px)" : "none" },
-                  ].map((style, i) => (
+                  ].map((s, i) => (
                     <span
                       key={i}
-                      style={{
-                        display: "block",
-                        height: "1.5px",
-                        backgroundColor: C.text,
-                        borderRadius: "1px",
-                        transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                        ...style,
-                      }}
+                      className="block h-[1.5px] bg-soft rounded-[1px] transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+                      style={s}
                     />
                   ))}
                 </div>
@@ -296,48 +203,23 @@ export const Header = () => {
 
           {/* ── Search drawer ── */}
           <div
-            style={{
-              height: searchOpen ? "56px" : "0",
-              overflow: "hidden",
-              transition: "height 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
-              borderTop: searchOpen ? `1px solid ${C.border}` : "1px solid transparent",
-            }}
+            className={`overflow-hidden transition-[height,border-color] duration-[350ms] ease-[cubic-bezier(0.4,0,0.2,1)] border-t ${
+              searchOpen ? "h-14 border-gold/12" : "h-0 border-transparent"
+            }`}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: "12px", height: "56px" }}>
-              <span style={{ color: C.textMuted, flexShrink: 0 }}>
+            <div className="flex items-center gap-3 h-14">
+              <span className="text-dim shrink-0">
                 <SearchIcon />
               </span>
               <input
                 ref={searchRef}
                 type="search"
                 placeholder="商品名・カテゴリで検索..."
-                style={{
-                  flex: 1,
-                  background: "transparent",
-                  border: "none",
-                  outline: "none",
-                  color: "#f0ebe4",
-                  fontSize: "0.9rem",
-                  letterSpacing: "0.03em",
-                  caretColor: C.accent,
-                }}
+                className="flex-1 bg-transparent border-none outline-none text-pale text-[0.9rem] tracking-[0.03em] caret-gold"
               />
               <button
                 onClick={() => setSearchOpen(false)}
-                style={{
-                  color: C.textMuted,
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  fontSize: "0.7rem",
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase",
-                  padding: "4px 0",
-                  transition: "color 0.2s ease",
-                  flexShrink: 0,
-                }}
-                onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = C.text)}
-                onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = C.textMuted)}
+                className="text-dim hover:text-soft text-[0.7rem] tracking-[0.12em] uppercase bg-transparent border-none cursor-pointer shrink-0 transition-colors duration-200 py-1"
               >
                 閉じる
               </button>
@@ -349,45 +231,31 @@ export const Header = () => {
       {/* ─── Mobile menu overlay ─── */}
       <div
         aria-hidden={!menuOpen}
-        style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 40,
-          backgroundColor: C.bg,
-          transform: menuOpen ? "translateX(0)" : "translateX(100%)",
-          transition: "transform 0.42s cubic-bezier(0.4, 0, 0.2, 1)",
-          display: "flex",
-          flexDirection: "column",
-          paddingTop: "80px",
-          paddingLeft: "36px",
-          paddingRight: "36px",
-          overflowY: "auto",
-        }}
+        className={`fixed inset-0 z-40 bg-canvas flex flex-col pt-20 px-9 overflow-y-auto transition-transform duration-[420ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${
+          menuOpen ? "translate-x-0" : "translate-x-full"
+        }`}
       >
         {/* Decorative line */}
-        <div style={{ width: "32px", height: "1px", backgroundColor: C.accent, marginBottom: "40px", opacity: menuOpen ? 1 : 0, transition: "opacity 0.3s ease 0.2s" }} />
+        <div
+          className="w-8 h-px bg-gold mb-10 transition-opacity duration-300 delay-200"
+          style={{ opacity: menuOpen ? 1 : 0 }}
+        />
 
         {/* Nav links */}
-        <nav style={{ display: "flex", flexDirection: "column", gap: "0" }}>
+        <nav className="flex flex-col">
           {NAV_ITEMS.map(({ to, label, end }, i) => (
             <NavLink
               key={to}
               to={to}
               end={end}
               onClick={closeAll}
+              className="no-underline py-[14px] border-b border-white/5 font-display text-[2.6rem] font-medium leading-[1.1] tracking-[0.04em] transition-[opacity,transform]"
               style={({ isActive }) => ({
-                fontFamily: "'Cormorant Garamond', serif",
-                fontSize: "2.6rem",
-                fontWeight: 500,
-                letterSpacing: "0.04em",
-                color: isActive ? C.accent : "#e8e0d8",
-                textDecoration: "none",
-                padding: "14px 0",
-                borderBottom: `1px solid ${C.borderSubtle}`,
+                color: isActive ? "#c8a46a" : "#e8e0d8",
                 opacity: menuOpen ? 1 : 0,
                 transform: menuOpen ? "translateX(0)" : "translateX(24px)",
-                transition: `opacity 0.4s ease ${i * 0.08 + 0.18}s, transform 0.4s ease ${i * 0.08 + 0.18}s`,
-                lineHeight: 1.1,
+                transitionDuration: "0.4s",
+                transitionDelay: `${i * 0.08 + 0.18}s`,
               })}
             >
               {label}
@@ -397,35 +265,20 @@ export const Header = () => {
 
         {/* Mobile footer actions */}
         <div
-          style={{
-            marginTop: "auto",
-            paddingTop: "32px",
-            paddingBottom: "48px",
-            display: "flex",
-            gap: "24px",
-            opacity: menuOpen ? 1 : 0,
-            transition: "opacity 0.4s ease 0.45s",
-          }}
+          className="mt-auto pt-8 pb-12 flex gap-6 transition-opacity duration-[400ms]"
+          style={{ opacity: menuOpen ? 1 : 0, transitionDelay: "0.45s" }}
         >
-          <NavLink
-            to="/account"
-            onClick={closeAll}
-            style={{ color: C.textMuted, fontSize: "0.8rem", letterSpacing: "0.1em", textDecoration: "none" }}
-          >
+          <NavLink to="/account" onClick={closeAll} className="text-dim text-[0.8rem] tracking-[0.1em] no-underline">
             アカウント
           </NavLink>
-          <NavLink
-            to="/cart"
-            onClick={closeAll}
-            style={{ color: C.textMuted, fontSize: "0.8rem", letterSpacing: "0.1em", textDecoration: "none" }}
-          >
+          <NavLink to="/cart" onClick={closeAll} className="text-dim text-[0.8rem] tracking-[0.1em] no-underline">
             カート {cartCount > 0 && `(${cartCount})`}
           </NavLink>
         </div>
       </div>
 
       {/* Header height spacer */}
-      <div style={{ height: "64px" }} />
+      <div className="h-16" />
     </>
   )
 }
