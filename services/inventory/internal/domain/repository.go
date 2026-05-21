@@ -9,6 +9,7 @@ var ErrNotFound = errors.New("inventory not found")
 
 // InventoryRepository は在庫データの永続化を抽象化するインターフェース
 type InventoryRepository interface {
+	FindAll(ctx context.Context) ([]*Inventory, error)
 	FindByID(ctx context.Context, id int) (*Inventory, error)
 	Save(ctx context.Context, inv *Inventory) error
 	// RunInTx はトランザクション内で fn を実行する。fn に渡されるリポジトリは

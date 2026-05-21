@@ -16,6 +16,13 @@ type stubInventoryRepository struct {
 	savedInv   *domain.Inventory
 }
 
+func (s *stubInventoryRepository) FindAll(_ context.Context) ([]*domain.Inventory, error) {
+	if s.inventory == nil {
+		return []*domain.Inventory{}, s.findErr
+	}
+	return []*domain.Inventory{s.inventory}, s.findErr
+}
+
 func (s *stubInventoryRepository) FindByID(_ context.Context, _ int) (*domain.Inventory, error) {
 	return s.inventory, s.findErr
 }

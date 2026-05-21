@@ -18,6 +18,24 @@ func NewInventoryRepository(pool *pgxpool.Pool) domain.InventoryRepository {
 	return &inventoryRepository{pool: pool}
 }
 
+func (r *inventoryRepository) FindAll(ctx context.Context) ([]*domain.Inventory, error) {
+	rows, err := r.pool.Query(ctx, `SELECT id, name, count FROM inventories ORDER BY id`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var inventories []*domain.Inventory
+	for rows.Next() {
+		var inv domain.Inventory
+		if err := rows.Scan(&inv.ID, &inv.Name, &inv.Count); err != nil {
+			return nil, err
+		}
+		inventories = append(inventories, &inv)
+	}
+	return inventories, rows.Err()
+}
+
 func (r *inventoryRepository) FindByID(ctx context.Context, id int) (*domain.Inventory, error) {
 	row := r.pool.QueryRow(ctx,
 		`SELECT id, name, count FROM inventories WHERE id = $1`,
@@ -55,6 +73,24 @@ func (r *inventoryRepository) RunInTx(ctx context.Context, fn func(domain.Invent
 // FindByID は SELECT FOR UPDATE でロックを取得し、Save は count のみを更新する。
 type txInventoryRepository struct {
 	tx pgx.Tx
+}
+
+func (r *txInventoryRepository) FindAll(ctx context.Context) ([]*domain.Inventory, error) {
+	rows, err := r.tx.Query(ctx, `SELECT id, name, count FROM inventories ORDER BY id`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var inventories []*domain.Inventory
+	for rows.Next() {
+		var inv domain.Inventory
+		if err := rows.Scan(&inv.ID, &inv.Name, &inv.Count); err != nil {
+			return nil, err
+		}
+		inventories = append(inventories, &inv)
+	}
+	return inventories, rows.Err()
 }
 
 func (r *txInventoryRepository) FindByID(ctx context.Context, id int) (*domain.Inventory, error) {

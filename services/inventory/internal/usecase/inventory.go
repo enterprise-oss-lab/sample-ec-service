@@ -8,6 +8,7 @@ import (
 
 // InventoryUsecase はインベントリに関するビジネスユースケースを定義するインターフェース
 type InventoryUsecase interface {
+	ListInventories(ctx context.Context) ([]*domain.Inventory, error)
 	Reserve(ctx context.Context, id int, quantity int) error
 	Restock(ctx context.Context, id int, quantity int) error
 	GetInventory(ctx context.Context, id int) (*domain.Inventory, error)
@@ -19,6 +20,10 @@ type inventoryUsecase struct {
 
 func NewInventoryUsecase(repo domain.InventoryRepository) InventoryUsecase {
 	return &inventoryUsecase{repo: repo}
+}
+
+func (u *inventoryUsecase) ListInventories(ctx context.Context) ([]*domain.Inventory, error) {
+	return u.repo.FindAll(ctx)
 }
 
 func (u *inventoryUsecase) GetInventory(ctx context.Context, id int) (*domain.Inventory, error) {
