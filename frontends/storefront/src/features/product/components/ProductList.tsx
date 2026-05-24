@@ -1,10 +1,14 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router'
 import { useProducts } from '../hooks/useProducts'
 import { useCreateOrder } from '../../order/hooks/useCreateOrder'
 
 export const ProductList = () => {
+  const navigate = useNavigate()
   const { data, isPending, isError } = useProducts()
-  const { mutate: order, isPending: isOrdering, variables } = useCreateOrder()
+  const { mutate: order, isPending: isOrdering, variables } = useCreateOrder({
+    onSuccess: () => navigate('/orders'),
+  })
   const [quantities, setQuantities] = useState<Record<number, number>>({})
 
   if (isPending) return <p className="text-dim">Loading...</p>

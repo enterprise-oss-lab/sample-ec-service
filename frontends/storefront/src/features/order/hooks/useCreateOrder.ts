@@ -1,8 +1,11 @@
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, type UseMutationOptions } from '@tanstack/react-query'
 import { createOrder, type CreateOrderRequest } from '../api'
 
-export function useCreateOrder() {
+type Options = Pick<UseMutationOptions<Awaited<ReturnType<typeof createOrder>>, Error, CreateOrderRequest>, 'onSuccess' | 'onError'>
+
+export function useCreateOrder(options?: Options) {
   return useMutation({
     mutationFn: (req: CreateOrderRequest) => createOrder(req),
+    ...options,
   })
 }
