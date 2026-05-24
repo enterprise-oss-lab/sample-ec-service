@@ -47,6 +47,19 @@ class PostgresOrderRepository(OrderRepository):
                 raise NotFoundError(f"order {id} not found")
             return await self._row_to_order(conn, row)
 
+    async def list_all(self, customer_id: str | None = None) -> list[Order]:
+        async with self._pool.acquire() as conn:
+            if customer_id is not None:
+                rows = await conn.fetch(
+                    "SELECT id, customer_id, status, correlation_id, created_at, updated_at FROM orders WHERE customer_id = $1 ORDER BY created_at DESC",
+                    customer_id,
+                )
+            else:
+                rows = await conn.fetch(
+                    "SELECT id, customer_id, status, correlation_id, created_at, updated_at FROM orders ORDER BY created_at DESC"
+                )
+            return [await self._row_to_order(conn, row) for row in rows]
+
     async def find_by_correlation_id(self, correlation_id: str) -> Order:
         async with self._pool.acquire() as conn:
             row = await conn.fetchrow(

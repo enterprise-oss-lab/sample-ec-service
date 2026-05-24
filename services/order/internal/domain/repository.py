@@ -12,3 +12,6 @@ class OrderRepository(ABC):
 
     @abstractmethod
     async def find_by_correlation_id(self, correlation_id: str) -> Order: ...
+
+    @abstractmethod
+    async def list_all(self, customer_id: str | None = None) -> list[Order]: ...

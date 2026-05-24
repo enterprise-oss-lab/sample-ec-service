@@ -63,6 +63,9 @@ class OrderUsecase:
         )
         return order
 
+    async def list_orders(self, customer_id: str | None = None) -> list[Order]:
+        return await self._repo.list_all(customer_id=customer_id)
+
     async def get_order(self, id: str) -> Order:
         return await self._repo.find_by_id(id)
 
