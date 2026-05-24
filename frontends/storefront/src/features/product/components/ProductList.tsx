@@ -2,12 +2,17 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useProducts } from '../hooks/useProducts'
 import { useCreateOrder } from '../../order/hooks/useCreateOrder'
+import { useFlash } from '@/shared/Flash'
 
 export const ProductList = () => {
   const navigate = useNavigate()
+  const { flash } = useFlash()
   const { data, isPending, isError } = useProducts()
   const { mutate: order, isPending: isOrdering, variables } = useCreateOrder({
-    onSuccess: () => navigate('/orders'),
+    onSuccess: () => {
+      flash('注文が完了しました')
+      navigate('/orders')
+    },
   })
   const [quantities, setQuantities] = useState<Record<number, number>>({})
 
