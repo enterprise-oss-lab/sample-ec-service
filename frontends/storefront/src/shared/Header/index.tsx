@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, type ReactNode } from "react"
 import { NavLink } from "react-router"
+import { useFlash } from "@/shared/Flash"
 
 const NAV_ITEMS = [
   { to: "/", label: "ホーム", end: true },
@@ -48,8 +49,10 @@ const IconButton = ({ onClick, "aria-label": ariaLabel, active, children, classN
 )
 
 export const Header = () => {
+  const { flash } = useFlash()
   const [menuOpen, setMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
   const [scrolled, setScrolled] = useState(false)
   const [cartCount] = useState(2)
   const searchRef = useRef<HTMLInputElement>(null)
@@ -214,6 +217,15 @@ export const Header = () => {
               <input
                 ref={searchRef}
                 type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && searchQuery.trim()) {
+                    flash("検索機能はまだ実装していません", "error")
+                    setSearchOpen(false)
+                    setSearchQuery("")
+                  }
+                }}
                 placeholder="商品名・カテゴリで検索..."
                 className="flex-1 bg-transparent border-none outline-none text-pale text-[0.9rem] tracking-[0.03em] caret-gold"
               />
