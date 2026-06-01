@@ -42,7 +42,7 @@ const IconButton = ({ onClick, "aria-label": ariaLabel, active, children, classN
   <button
     onClick={onClick}
     aria-label={ariaLabel}
-    className={`relative p-2.5 transition-colors duration-200 cursor-pointer hover:text-gold ${active ? "text-gold" : "text-soft"} ${className}`}
+    className={`relative p-2.5 transition-colors duration-150 cursor-pointer hover:text-sage ${active ? "text-sage" : "text-dim"} ${className}`}
   >
     {children}
   </button>
@@ -58,6 +58,16 @@ export const Header = () => {
   const searchRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
+    const id = "app-fonts"
+    if (document.getElementById(id)) return
+    const link = document.createElement("link")
+    link.id = id
+    link.rel = "stylesheet"
+    link.href = "https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Inter:wght@300;400;500;600;700&display=swap"
+    document.head.appendChild(link)
+  }, [])
+
+  useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12)
     window.addEventListener("scroll", onScroll, { passive: true })
     return () => window.removeEventListener("scroll", onScroll)
@@ -71,16 +81,6 @@ export const Header = () => {
     document.body.style.overflow = menuOpen ? "hidden" : ""
     return () => { document.body.style.overflow = "" }
   }, [menuOpen])
-
-  useEffect(() => {
-    const id = "header-font-cormorant"
-    if (document.getElementById(id)) return
-    const link = document.createElement("link")
-    link.id = id
-    link.rel = "stylesheet"
-    link.href = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&display=swap"
-    document.head.appendChild(link)
-  }, [])
 
   const closeAll = () => {
     setMenuOpen(false)
@@ -101,26 +101,21 @@ export const Header = () => {
     <>
       {/* ─── Fixed header ─── */}
       <header
-        className={`fixed inset-x-0 top-0 z-50 border-b ${
-          scrolled ? "bg-canvas/92 border-gold/12" : "bg-canvas border-white/5"
+        className={`fixed inset-x-0 top-0 z-50 bg-canvas border-b transition-[border-color,box-shadow] duration-300 ${
+          scrolled ? "border-border shadow-sm" : "border-transparent"
         }`}
-        style={{
-          backdropFilter: scrolled ? "blur(16px) saturate(1.4)" : "none",
-          WebkitBackdropFilter: scrolled ? "blur(16px) saturate(1.4)" : "none",
-          transition: "background-color 0.4s ease, border-color 0.4s ease, backdrop-filter 0.4s ease",
-        }}
       >
-        <div className="max-w-[1280px] mx-auto px-6">
+        <div className="max-w-5xl mx-auto px-6">
           {/* Main row */}
           <div className="flex items-center justify-between h-16">
 
             {/* ── Logo ── */}
-            <NavLink to="/" onClick={closeAll} className="no-underline flex items-center gap-[10px]">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M10 1L19 10L10 19L1 10Z" stroke="#c8a46a" strokeWidth="1.5" fill="none" />
-                <path d="M10 5L15 10L10 15L5 10Z" fill="#c8a46a" opacity="0.35" />
+            <NavLink to="/" onClick={closeAll} className="no-underline flex items-center gap-2.5">
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                <path d="M10 1L19 10L10 19L1 10Z" stroke="#6b8c72" strokeWidth="1.5" fill="none" />
+                <path d="M10 5L15 10L10 15L5 10Z" fill="#6b8c72" opacity="0.4" />
               </svg>
-              <span className="font-display text-[1.35rem] font-semibold text-pale tracking-[0.18em] leading-none">
+              <span className="font-display text-[1.2rem] font-semibold text-pale tracking-[0.16em] leading-none">
                 MAISON
               </span>
             </NavLink>
@@ -134,14 +129,14 @@ export const Header = () => {
                   end={end}
                   onClick={closeAll}
                   className={({ isActive }) =>
-                    `group relative no-underline text-[0.8125rem] font-medium tracking-[0.09em] pb-1 transition-colors duration-200 hover:text-gold ${isActive ? "text-gold" : "text-soft"}`
+                    `group relative no-underline text-[0.8125rem] font-medium tracking-wide pb-1 transition-colors duration-150 hover:text-sage ${isActive ? "text-sage" : "text-soft"}`
                   }
                 >
                   {({ isActive }) => (
                     <>
                       {label}
                       <span
-                        className={`absolute bottom-0 left-0 h-px bg-gold transition-[width] duration-[250ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${isActive ? "w-full" : "w-0 group-hover:w-full"}`}
+                        className={`absolute bottom-0 left-0 h-px bg-sage transition-[width] duration-200 ${isActive ? "w-full" : "w-0 group-hover:w-full"}`}
                       />
                     </>
                   )}
@@ -151,30 +146,27 @@ export const Header = () => {
 
             {/* ── Action icons ── */}
             <div className="flex items-center gap-[2px]">
-              {/* Search toggle */}
               <IconButton onClick={toggleSearch} aria-label="検索" active={searchOpen}>
                 <SearchIcon />
               </IconButton>
 
-              {/* Account */}
               <NavLink
                 to="/account"
                 onClick={closeAll}
-                className="text-soft hover:text-gold flex p-[10px] transition-colors duration-200"
+                className="text-dim hover:text-sage flex p-[10px] transition-colors duration-150"
               >
                 <UserIcon />
               </NavLink>
 
-              {/* Cart */}
               <NavLink
                 to="/cart"
                 onClick={closeAll}
-                className="text-soft hover:text-gold flex p-[10px] relative transition-colors duration-200"
+                className="text-dim hover:text-sage flex p-[10px] relative transition-colors duration-150"
                 aria-label={`カート (${cartCount}点)`}
               >
                 <BagIcon />
                 {cartCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-gold text-canvas text-[10px] font-bold flex items-center justify-center leading-none">
+                  <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-sage text-white text-[10px] font-bold flex items-center justify-center leading-none">
                     {cartCount > 9 ? "9+" : cartCount}
                   </span>
                 )}
@@ -195,7 +187,7 @@ export const Header = () => {
                   ].map((s, i) => (
                     <span
                       key={i}
-                      className="block h-[1.5px] bg-soft rounded-[1px] transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+                      className="block h-[1.5px] bg-soft rounded-[1px] transition-transform duration-300"
                       style={s}
                     />
                   ))}
@@ -206,8 +198,8 @@ export const Header = () => {
 
           {/* ── Search drawer ── */}
           <div
-            className={`overflow-hidden transition-[height,border-color] duration-[350ms] ease-[cubic-bezier(0.4,0,0.2,1)] border-t ${
-              searchOpen ? "h-14 border-gold/12" : "h-0 border-transparent"
+            className={`overflow-hidden transition-[height,border-color] duration-300 border-t ${
+              searchOpen ? "h-14 border-border" : "h-0 border-transparent"
             }`}
           >
             <div className="flex items-center gap-3 h-14">
@@ -227,11 +219,11 @@ export const Header = () => {
                   }
                 }}
                 placeholder="商品名・カテゴリで検索..."
-                className="flex-1 bg-transparent border-none outline-none text-pale text-[0.9rem] tracking-[0.03em] caret-gold"
+                className="flex-1 bg-transparent border-none outline-none text-pale text-[0.9rem] tracking-wide caret-sage"
               />
               <button
                 onClick={() => setSearchOpen(false)}
-                className="text-dim hover:text-soft text-[0.7rem] tracking-[0.12em] uppercase bg-transparent border-none cursor-pointer shrink-0 transition-colors duration-200 py-1"
+                className="text-dim hover:text-soft text-[0.7rem] tracking-widest uppercase bg-transparent border-none cursor-pointer shrink-0 transition-colors duration-150 py-1"
               >
                 閉じる
               </button>
@@ -243,17 +235,15 @@ export const Header = () => {
       {/* ─── Mobile menu overlay ─── */}
       <div
         aria-hidden={!menuOpen}
-        className={`fixed inset-0 z-40 bg-canvas flex flex-col pt-20 px-9 overflow-y-auto transition-transform duration-[420ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${
+        className={`fixed inset-0 z-40 bg-canvas flex flex-col pt-20 px-9 overflow-y-auto transition-transform duration-[380ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${
           menuOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        {/* Decorative line */}
         <div
-          className="w-8 h-px bg-gold mb-10 transition-opacity duration-300 delay-200"
+          className="w-8 h-px bg-sage mb-10 transition-opacity duration-300 delay-200"
           style={{ opacity: menuOpen ? 1 : 0 }}
         />
 
-        {/* Nav links */}
         <nav className="flex flex-col">
           {NAV_ITEMS.map(({ to, label, end }, i) => (
             <NavLink
@@ -261,13 +251,13 @@ export const Header = () => {
               to={to}
               end={end}
               onClick={closeAll}
-              className="no-underline py-[14px] border-b border-white/5 font-display text-[2.6rem] font-medium leading-[1.1] tracking-[0.04em] transition-[opacity,transform]"
+              className="no-underline py-[14px] border-b border-border font-display text-[2.4rem] font-semibold leading-[1.1] tracking-tight transition-[opacity,transform]"
               style={({ isActive }) => ({
-                color: isActive ? "#c8a46a" : "#e8e0d8",
+                color: isActive ? "#6b8c72" : "#1a1915",
                 opacity: menuOpen ? 1 : 0,
-                transform: menuOpen ? "translateX(0)" : "translateX(24px)",
-                transitionDuration: "0.4s",
-                transitionDelay: `${i * 0.08 + 0.18}s`,
+                transform: menuOpen ? "translateX(0)" : "translateX(20px)",
+                transitionDuration: "0.38s",
+                transitionDelay: `${i * 0.07 + 0.16}s`,
               })}
             >
               {label}
@@ -275,15 +265,14 @@ export const Header = () => {
           ))}
         </nav>
 
-        {/* Mobile footer actions */}
         <div
-          className="mt-auto pt-8 pb-12 flex gap-6 transition-opacity duration-[400ms]"
-          style={{ opacity: menuOpen ? 1 : 0, transitionDelay: "0.45s" }}
+          className="mt-auto pt-8 pb-12 flex gap-6 transition-opacity duration-300"
+          style={{ opacity: menuOpen ? 1 : 0, transitionDelay: "0.4s" }}
         >
-          <NavLink to="/account" onClick={closeAll} className="text-dim text-[0.8rem] tracking-[0.1em] no-underline">
+          <NavLink to="/account" onClick={closeAll} className="text-dim text-[0.8rem] tracking-wide no-underline">
             アカウント
           </NavLink>
-          <NavLink to="/cart" onClick={closeAll} className="text-dim text-[0.8rem] tracking-[0.1em] no-underline">
+          <NavLink to="/cart" onClick={closeAll} className="text-dim text-[0.8rem] tracking-wide no-underline">
             カート {cartCount > 0 && `(${cartCount})`}
           </NavLink>
         </div>

@@ -1,33 +1,74 @@
 import { useOrders } from '../hooks/useOrders'
 
 const STATUS_LABEL: Record<string, string> = {
-  pending: '処理中',
+  pending:   '処理中',
   confirmed: '確定',
-  shipped: '発送済',
+  shipped:   '発送済',
   delivered: '配達済',
   cancelled: 'キャンセル',
 }
 
-const STATUS_COLOR: Record<string, string> = {
-  pending: 'text-gold',
-  confirmed: 'text-green-400',
-  shipped: 'text-blue-400',
-  delivered: 'text-soft',
-  cancelled: 'text-red-400',
+type StatusKey = keyof typeof STATUS_LABEL
+
+const StatusBadge = ({ status }: { status: string }) => {
+  const styles: Record<string, string> = {
+    pending:   'bg-amber-50 text-amber-700 border-amber-200',
+    confirmed: 'bg-sage-light text-sage border-sage/30',
+    shipped:   'bg-blue-50 text-blue-600 border-blue-200',
+    delivered: 'bg-panel text-dim border-border',
+    cancelled: 'bg-red-50 text-red-500 border-red-200',
+  }
+  const cls = styles[status] ?? 'bg-panel text-dim border-border'
+  const label = STATUS_LABEL[status as StatusKey] ?? status
+
+  return (
+    <span className={`inline-block text-[0.68rem] font-semibold tracking-wider uppercase px-2.5 py-1 rounded-sm border ${cls}`}>
+      {label}
+    </span>
+  )
 }
 
 export const OrderList = () => {
   const { data, isPending, isError } = useOrders()
 
-  if (isPending) return <p className="text-dim">Loading...</p>
-  if (isError) return <p className="text-red-400">注文の取得に失敗しました</p>
-  if (data.length === 0) return <p className="text-dim">注文履歴がありません</p>
+  if (isPending) return (
+    <div className="flex flex-col gap-3">
+      {[...Array(3)].map((_, i) => (
+        <div key={i} className="rounded-lg border border-border bg-panel p-5 animate-pulse space-y-3">
+          <div className="flex justify-between">
+            <div className="h-3 bg-border rounded w-48" />
+            <div className="h-5 bg-border rounded w-16" />
+          </div>
+          <div className="h-3 bg-border rounded w-32" />
+          <div className="h-3 bg-border rounded w-24" />
+        </div>
+      ))}
+    </div>
+  )
+
+  if (isError) return (
+    <div className="py-16 text-center">
+      <p className="text-dim text-sm">注文の取得に失敗しました</p>
+    </div>
+  )
+
+  if (data.length === 0) return (
+    <div className="py-20 text-center">
+      <div className="w-12 h-12 rounded-full bg-sage-light/50 flex items-center justify-center mx-auto mb-4">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b8c72" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <path d="M16 10a4 4 0 0 1-8 0" />
+        </svg>
+      </div>
+      <p className="text-pale text-[0.9rem] font-medium mb-1">注文履歴がありません</p>
+      <p className="text-dim text-[0.8rem]">ご注文いただくと、こちらに履歴が表示されます。</p>
+    </div>
+  )
 
   return (
-    <ul className="flex flex-col gap-4">
-      {data.map((order) => {
-        const statusLabel = STATUS_LABEL[order.status] ?? order.status
-        const statusColor = STATUS_COLOR[order.status] ?? 'text-soft'
+    <ul className="flex flex-col gap-3">
+      {data.map((order, i) => {
         const date = new Date(order.created_at).toLocaleString('ja-JP', {
           year: 'numeric',
           month: '2-digit',
@@ -36,23 +77,31 @@ export const OrderList = () => {
           minute: '2-digit',
         })
         return (
-          <li key={order.id} className="bg-panel hover:bg-panel-hover rounded-lg p-5 transition-colors">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="font-mono text-xs text-dim truncate max-w-xs">{order.id}</p>
-                <p className="text-pale text-sm mt-1">顧客: {order.customer_id}</p>
+          <li
+            key={order.id}
+            className="animate-fade-in-up rounded-lg border border-border bg-panel hover:bg-panel-hover transition-colors duration-150 p-5"
+            style={{ animationDelay: `${i * 0.05}s` }}
+          >
+            <div className="flex items-start justify-between gap-4 mb-3">
+              <div className="min-w-0">
+                <p className="text-[0.68rem] font-mono text-dim truncate">{order.id}</p>
+                <p className="text-pale text-[0.875rem] font-medium mt-0.5">{order.customer_id}</p>
               </div>
-              <span className={`text-sm font-medium shrink-0 ${statusColor}`}>{statusLabel}</span>
+              <StatusBadge status={order.status} />
             </div>
-            <ul className="mt-3 flex flex-col gap-1">
-              {order.items.map((item, i) => (
-                <li key={i} className="flex gap-2 text-sm text-dim">
-                  <span>商品 ID: <span className="font-mono text-soft">{item.inventory_id}</span></span>
-                  <span>×{item.quantity}</span>
-                </li>
+
+            <div className="border-t border-border pt-3 space-y-1.5">
+              {order.items.map((item, j) => (
+                <div key={j} className="flex items-center justify-between text-[0.8rem]">
+                  <span className="text-dim">
+                    商品 <span className="font-mono text-soft">#{item.inventory_id}</span>
+                  </span>
+                  <span className="text-dim">× {item.quantity}</span>
+                </div>
               ))}
-            </ul>
-            <p className="mt-3 text-xs text-dim">{date}</p>
+            </div>
+
+            <p className="mt-3 text-[0.72rem] text-dim/70">{date}</p>
           </li>
         )
       })}

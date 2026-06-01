@@ -25,12 +25,11 @@ export const Flash = () => {
       {messages.map(({ id, message, type }) => (
         <div
           key={id}
-          className="animate-fade-in-up pointer-events-auto flex items-center gap-3 rounded border px-4 py-3 text-sm"
+          className="animate-fade-in-up pointer-events-auto flex items-center gap-3 rounded-lg border px-4 py-3 text-sm shadow-sm"
           style={{
-            background: type === 'success' ? 'rgba(200,164,106,0.10)' : 'rgba(220,80,80,0.10)',
-            borderColor: type === 'success' ? 'rgba(200,164,106,0.45)' : 'rgba(220,80,80,0.45)',
-            color: type === 'success' ? '#c8a46a' : '#e06060',
-            backdropFilter: 'blur(12px)',
+            background: type === 'success' ? 'rgba(232,240,234,0.96)' : 'rgba(255,245,245,0.96)',
+            borderColor: type === 'success' ? 'rgba(107,140,114,0.4)' : 'rgba(210,70,70,0.35)',
+            color: type === 'success' ? '#3d6645' : '#c03030',
           }}
         >
           <span className="shrink-0">

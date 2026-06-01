@@ -1,11 +1,9 @@
-
 import { OrderList } from '@/features/order/components/OrderList'
+import { PageHeader } from '@/shared/ui/PageHeader'
 
-export const OrderPage = () => {
-  return (
-    <main className="mx-auto max-w-5xl px-4 py-8">
-      <h1 className="font-display text-3xl mb-6">注文履歴</h1>
-      <OrderList />
-    </main>
-  )
-}
+export const OrderPage = () => (
+  <main className="mx-auto max-w-5xl px-6 py-10">
+    <PageHeader label="Orders" title="注文履歴" />
+    <OrderList />
+  </main>
+)
