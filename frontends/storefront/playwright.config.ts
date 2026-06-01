@@ -19,7 +19,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'VITE_MSW_ENABLED=true pnpm dev',
+    command: 'VITE_MSW_ENABLED=true VITE_ORDER_API_BASE_URL=http://localhost:8081 VITE_INVENTORY_API_BASE_URL=http://localhost:18080 pnpm dev',
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
   },
