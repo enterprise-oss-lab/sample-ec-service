@@ -10,9 +10,9 @@ afterEach(() => server.resetHandlers())
 afterAll(() => server.close())
 
 describe('OrderList', () => {
-  it('ローディング中に Loading... を表示する', () => {
-    renderWithProviders(<OrderList />)
-    expect(screen.getByText('Loading...')).toBeInTheDocument()
+  it('ローディング中にスケルトンを表示する', () => {
+    const { container } = renderWithProviders(<OrderList />)
+    expect(container.querySelector('.animate-pulse')).toBeInTheDocument()
   })
 
   it('注文一覧が表示される', async () => {

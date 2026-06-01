@@ -26,9 +26,9 @@ async function renderAndWait() {
 }
 
 describe('ProductList', () => {
-  it('ローディング中に Loading... を表示する', () => {
-    renderWithProviders(<ProductList />)
-    expect(screen.getByText('Loading...')).toBeInTheDocument()
+  it('ローディング中にスケルトンを表示する', () => {
+    const { container } = renderWithProviders(<ProductList />)
+    expect(container.querySelector('.animate-pulse')).toBeInTheDocument()
   })
 
   it('商品一覧が表示される', async () => {
