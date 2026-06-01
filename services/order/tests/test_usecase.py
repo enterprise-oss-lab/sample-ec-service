@@ -65,6 +65,28 @@ class TestCreateOrder:
             await uc.create_order(customer_id="c1", items=[OrderItem(inventory_id=1, quantity=0)])
 
 
+class TestListOrders:
+    async def test_returns_all_orders(self):
+        orders = [make_pending_order("order-1"), make_pending_order("order-2")]
+        repo = AsyncMock()
+        repo.list_all.return_value = orders
+        uc = make_usecase(repo=repo)
+
+        result = await uc.list_orders()
+        assert len(result) == 2
+        repo.list_all.assert_awaited_once_with(customer_id=None)
+
+    async def test_filters_by_customer_id(self):
+        orders = [make_pending_order("order-1")]
+        repo = AsyncMock()
+        repo.list_all.return_value = orders
+        uc = make_usecase(repo=repo)
+
+        result = await uc.list_orders(customer_id="customer-1")
+        assert len(result) == 1
+        repo.list_all.assert_awaited_once_with(customer_id="customer-1")
+
+
 class TestGetOrder:
     async def test_returns_order(self):
         order = make_pending_order()

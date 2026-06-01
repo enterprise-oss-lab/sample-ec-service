@@ -15,6 +15,7 @@ type KafkaConfig struct {
 type Config struct {
 	DatabaseURL string
 	Port        string
+	CORSOrigin  string
 	Kafka       KafkaConfig
 }
 
@@ -49,9 +50,15 @@ func Load() Config {
 		consumerGroup = "inventory-service"
 	}
 
+	corsOrigin := os.Getenv("CORS_ORIGIN")
+	if corsOrigin == "" {
+		corsOrigin = "http://localhost:5173"
+	}
+
 	return Config{
 		DatabaseURL: dsn,
 		Port:        port,
+		CORSOrigin:  corsOrigin,
 		Kafka: KafkaConfig{
 			Brokers:       strings.Split(brokers, ","),
 			RequestTopic:  requestTopic,

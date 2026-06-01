@@ -1,0 +1,26 @@
+import { defineConfig, devices } from '@playwright/test'
+
+export default defineConfig({
+  testDir: './e2e',
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 1 : undefined,
+  reporter: 'list',
+  use: {
+    baseURL: 'http://localhost:5173',
+    trace: 'on-first-retry',
+    serviceWorkers: 'block',
+  },
+  projects: [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+    },
+  ],
+  webServer: {
+    command: 'VITE_MSW_ENABLED=true VITE_ORDER_API_BASE_URL=http://localhost:8081 VITE_INVENTORY_API_BASE_URL=http://localhost:18080 pnpm dev',
+    url: 'http://localhost:5173',
+    reuseExistingServer: !process.env.CI,
+  },
+})

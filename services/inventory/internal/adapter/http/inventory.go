@@ -21,9 +21,22 @@ func NewInventoryHandler(uc usecase.InventoryUsecase) *InventoryHandler {
 
 func (h *InventoryHandler) RegisterRoutes(r *gin.Engine) {
 	g := r.Group("/inventories")
+	g.GET("", h.ListInventories)
 	g.GET("/:id", h.GetInventory)
 	g.POST("/:id/reserve", h.Reserve)
 	g.POST("/:id/restock", h.Restock)
+}
+
+func (h *InventoryHandler) ListInventories(c *gin.Context) {
+	inventories, err := h.uc.ListInventories(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, errorResponse("internal server error"))
+		return
+	}
+	if inventories == nil {
+		inventories = []*domain.Inventory{}
+	}
+	c.JSON(http.StatusOK, inventories)
 }
 
 func (h *InventoryHandler) GetInventory(c *gin.Context) {

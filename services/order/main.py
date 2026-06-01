@@ -5,6 +5,7 @@ import sys
 import asyncpg
 import uvicorn
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from config.config import Settings
 from internal.adapter.http.order import create_router
@@ -39,6 +40,12 @@ async def run() -> None:
     )
 
     app = FastAPI(title="Order Service")
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:5173"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     app.include_router(create_router(usecase))
 
     server_config = uvicorn.Config(app, host="0.0.0.0", port=8080, log_level="info")

@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -64,6 +65,11 @@ func main() {
 
 	h := httphandler.NewInventoryHandler(uc)
 	r := gin.Default()
+	r.Use(cors.New(cors.Config{
+		AllowOrigins: []string{cfg.CORSOrigin},
+		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders: []string{"Content-Type", "Authorization"},
+	}))
 	h.RegisterRoutes(r)
 
 	addr := ":" + cfg.Port
