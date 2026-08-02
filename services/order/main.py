@@ -6,12 +6,17 @@ import asyncpg
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from opentelemetry.instrumentation.asyncpg import AsyncPGInstrumentor
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.instrumentation.logging import LoggingInstrumentor
+from opentelemetry.sdk._logs import LoggingHandler
 
 from config.config import Settings
 from internal.adapter.http.order import create_router
 from internal.adapter.kafka.consumer import KafkaResultConsumer
 from internal.adapter.kafka.producer import KafkaReservationProducer
 from internal.repository.postgres.order import PostgresOrderRepository
+from internal.telemetry.otel import setup_telemetry
 from internal.usecase.order import OrderUsecase
 
 logging.basicConfig(level=logging.INFO, stream=sys.stdout)
@@ -20,6 +25,12 @@ logger = logging.getLogger(__name__)
 
 async def run() -> None:
     cfg = Settings()
+
+    shutdown_telemetry = setup_telemetry()
+    # ログに trace_id/span_id を注入し、OTel ハンドラで Loki へエクスポート
+    LoggingInstrumentor().instrument(set_logging_format=True)
+    logging.getLogger().addHandler(LoggingHandler())
+    AsyncPGInstrumentor().instrument()
 
     pool = await asyncpg.create_pool(cfg.database_url)
     if pool is None:
@@ -46,6 +57,7 @@ async def run() -> None:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    FastAPIInstrumentor.instrument_app(app)
     app.include_router(create_router(usecase))
 
     server_config = uvicorn.Config(app, host="0.0.0.0", port=8080, log_level="info")
@@ -60,6 +72,7 @@ async def run() -> None:
     finally:
         producer.close()
         await pool.close()
+        shutdown_telemetry()
 
 
 if __name__ == "__main__":

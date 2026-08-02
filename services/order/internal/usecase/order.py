@@ -2,8 +2,17 @@ import uuid
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 
+from opentelemetry import metrics
+
 from internal.domain.order import Order, OrderItem, OrderStatus
 from internal.domain.repository import OrderRepository
+
+_meter = metrics.get_meter(__name__)
+# 注文ステータス遷移カウンタ order.status.transitions{status=...}
+_status_transitions = _meter.create_counter(
+    "order.status.transitions",
+    description="Number of order status transitions",
+)
 
 
 class KafkaProducerPort(ABC):
@@ -51,6 +60,7 @@ class OrderUsecase:
             updated_at=now,
         )
         await self._repo.save(order)
+        _status_transitions.add(1, {"status": OrderStatus.PENDING.value})
 
         # Publish one reservation request per item. For simplicity, this sample
         # uses the first item's inventory_id and quantity for the correlation key.
@@ -73,6 +83,7 @@ class OrderUsecase:
         order = await self._repo.find_by_id(id)
         order.cancel()
         await self._repo.save(order)
+        _status_transitions.add(1, {"status": OrderStatus.CANCELLED.value})
 
     async def handle_reservation_result(self, result: ReservationResult) -> None:
         order = await self._repo.find_by_correlation_id(result.correlation_id)
@@ -81,3 +92,4 @@ class OrderUsecase:
         else:
             order.fail()
         await self._repo.save(order)
+        _status_transitions.add(1, {"status": order.status.value})
