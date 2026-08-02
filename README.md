@@ -13,6 +13,8 @@ docker compose up --build -d
 ```
 
 起動後、Grafana を開く: <http://localhost:3000> (匿名アクセス可)。
+**「EC Overview (sample-ec-service)」ダッシュボード**が自動投入されており、Dashboards から開ける
+(`observability/grafana/` の JSON を provisioning でマウント)。
 
 注文を1件作成してトラフィックを生成:
 

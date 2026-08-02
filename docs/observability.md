@@ -126,7 +126,8 @@ export のバッチ/間隔/タイムアウトは SDK 既定を用いる。
   - image: `grafana/otel-lgtm:0.30.0`
   - ports: `["3000:3000"]` (Grafana UI)
   - **ボリュームは付けない (揮発)**
-  - healthcheck: `wget -qO- localhost:3000/api/health`
+  - healthcheck: `curl -sf localhost:3000/api/health` (イメージには curl のみ同梱)
+  - `observability/grafana/` の provisioning YAML と dashboards ディレクトリを読み取り専用でマウント (→ §12)
 - `inventory` / `order-service` に §5 の `OTEL_*` env を追加。
 - 両サービスに `depends_on: otel-lgtm` (condition 不要 — exporter はリトライする)。
 
@@ -274,4 +275,32 @@ header key は両側とも W3C `traceparent` で互換。
   (ラボ用途のため既定のまま)
 - CI ワークフローの変更 (go.sum / pyproject の変更は既存ワークフローが自動で拾う)
 - health / readiness エンドポイント
+
+## 12. Grafana ダッシュボード (provisioning)
+
+起動時に Grafana へ自動投入する **EC Overview** ダッシュボードを同梱する。
+
+- 配置:
+  - `observability/grafana/dashboards/ec-overview.json` — ダッシュボード本体 (uid `ec-overview`)
+  - `observability/grafana/provisioning/dashboards/custom.yaml` — file プロバイダ定義
+- compose の `otel-lgtm` に read-only でマウント:
+  - `custom.yaml` → `/otel-lgtm/grafana/conf/provisioning/dashboards/custom.yaml`
+  - `dashboards/` → `/otel-lgtm/grafana/conf/provisioning/dashboards/custom`
+- datasource UID は otel-lgtm 固定値 (`prometheus` / `loki` / `tempo`) を参照。
+
+### パネル構成 (実際の指標名で検証済み)
+
+| 区分 | パネル | 主なクエリ (指標) |
+|------|--------|-------------------|
+| サマリ | 注文作成数 / 予約成功率 / 確定 / 失敗 | `order_status_transitions_total`, `inventory_reservations_total` |
+| saga | 注文ステータス遷移レート | `sum by (status)(rate(order_status_transitions_total[…]))` |
+| saga | 在庫予約 成功/失敗レート | `sum by (result)(rate(inventory_reservations_total[…]))` |
+| HTTP | リクエストレート / レイテンシ p50・p95・p99 | `http_server_duration_milliseconds_{count,bucket}{service_name="order"}` |
+| inventory | goroutine 数 / 使用メモリ / DB p95 | `go_goroutine_count`, `go_memory_used_bytes`, `db_client_operation_duration_seconds_bucket` |
+| ログ | order / inventory ログ | Loki `{service_name=~"order|inventory"}` |
+
+> **指標名の注意**: OTel → Prometheus 変換でドットは `_`、カウンタには `_total`、単位が名前に付く
+> (例: `http.server.duration` ms → `http_server_duration_milliseconds_*`)。
+> HTTP は新 semconv の `http_server_request_duration_seconds` ではなく、FastAPI 計装が出力する
+> **ミリ秒ヒストグラム** `http_server_duration_milliseconds_*` に実データが乗る点に注意。
 ```
