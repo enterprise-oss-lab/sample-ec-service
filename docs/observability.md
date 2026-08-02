@@ -31,14 +31,46 @@ CORS 設定も変更しない。
 
 ## 3. 全体アーキテクチャ
 
-```
-storefront ──HTTP──▶ order(FastAPI)  ──traces/metrics/logs──┐
-     (root=HTTP span)   │  produce(request) + inject traceparent header
-                        ▼                                     ▼
-                     Kafka ──▶ inventory(Gin)  ──────────▶ otel-lgtm
-                        ▲   extract→work→produce(result)+inject  ▲  OTLP gRPC :4317
-                        └──────────────────────────────────────────┘
-                     Grafana UI :3000  (Tempo / Prometheus / Loki)
+```mermaid
+flowchart LR
+    subgraph client["ブラウザ (計装対象外)"]
+        SF["storefront<br/>React / Vite"]
+    end
+
+    subgraph backend["バックエンド (計装対象)"]
+        ORDER["order<br/>Python / FastAPI<br/>root = HTTP span"]
+        INV["inventory<br/>Go / Gin"]
+    end
+
+    subgraph kafka["Kafka"]
+        REQ[("request topic")]
+        RES[("result topic")]
+    end
+
+    subgraph obs["otel-lgtm (単一コンテナ / 揮発)"]
+        COL["OTel Collector"]
+        TEMPO["Tempo"]
+        PROM["Prometheus"]
+        LOKI["Loki"]
+        GRAFANA["Grafana UI :3000"]
+    end
+
+    SF -->|HTTP POST /orders| ORDER
+
+    ORDER -->|"produce + inject traceparent"| REQ
+    REQ -->|"extract"| INV
+    INV -->|"produce + inject traceparent"| RES
+    RES -->|"extract"| ORDER
+
+    ORDER -.->|"OTLP gRPC :4317<br/>traces / metrics / logs"| COL
+    INV -.->|"OTLP gRPC :4317<br/>traces / metrics / logs"| COL
+
+    COL --> TEMPO
+    COL --> PROM
+    COL --> LOKI
+    TEMPO --> GRAFANA
+    PROM --> GRAFANA
+    LOKI --> GRAFANA
 ```
 
 - 収集基盤は `grafana/otel-lgtm` 単一コンテナ (OTel Collector + Tempo + Loki + Prometheus + Grafana)。
@@ -199,14 +231,19 @@ Dockerfile は `go mod download` + build のため構成変更は不要。
 `POST /orders` の HTTP span を root として、以下が**同一 trace_id** で
 Tempo 上に1本の trace ツリーとして表示されること:
 
-```
-order: HTTP POST /orders          (root span)
-  └─ order: produce(request)      + inject traceparent
-       └─ inventory: consume      extract
-            └─ inventory: DB (SELECT ... FOR UPDATE / UPDATE)  ← otelpgx
-            └─ inventory: produce(result)  + inject traceparent
-                 └─ order: consume         extract
-                      └─ order: handle_reservation_result
+```mermaid
+flowchart TB
+    A["order: HTTP POST /orders<br/>(root span)"]
+    B["order: produce(request)<br/>+ inject traceparent"]
+    C["inventory: consume<br/>extract"]
+    D["inventory: DB<br/>SELECT ... FOR UPDATE / UPDATE<br/>(otelpgx)"]
+    E["inventory: produce(result)<br/>+ inject traceparent"]
+    F["order: consume<br/>extract"]
+    G["order: handle_reservation_result"]
+
+    A --> B --> C
+    C --> D
+    C --> E --> F --> G
 ```
 
 header key は両側とも W3C `traceparent` で互換。
