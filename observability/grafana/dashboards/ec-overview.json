@@ -12,8 +12,263 @@
   "panels": [
     {
       "type": "row",
-      "title": "サマリ",
+      "title": "SLI / SLO (CUJ ベース)",
+      "description": "クリティカルユーザージャーニー別の SLI と SLO 閾値。可用性 = 非5xx率。閾値色はラボ用の暫定 SLO。",
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 50,
+      "collapsed": false
+    },
+    {
+      "type": "stat",
+      "title": "閲覧 可用性 (inventory)",
+      "description": "商品/在庫の閲覧 (inventory GET) の非5xx率。SLO: ≥99.9% 緑 / ≥99% 黄 / <99% 赤。4xx はユーザー起因のため成功に含む。",
+      "id": 51,
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "100 * sum(increase(http_server_request_duration_seconds_count{service_name=\"inventory\",http_response_status_code!~\"5..\"}[$__range])) / clamp_min(sum(increase(http_server_request_duration_seconds_count{service_name=\"inventory\"}[$__range])), 1)",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 2,
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 99 },
+              { "color": "green", "value": 99.9 }
+            ]
+          },
+          "color": { "mode": "thresholds" }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "閲覧 p95 レイテンシ (inventory)",
+      "description": "inventory HTTP サーバの p95 レイテンシ (秒)。SLO しきい: <0.2s 緑 / <0.5s 黄 / ≥0.5s 赤。",
+      "id": 52,
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket{service_name=\"inventory\"}[$__rate_interval])))",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 3,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.2 },
+              { "color": "red", "value": 0.5 }
+            ]
+          },
+          "color": { "mode": "thresholds" }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "注文作成 可用性 (order POST /orders)",
+      "description": "注文作成エンドポイント (POST /orders) の非5xx率。SLO: ≥99.5% 緑 / ≥99% 黄 / <99% 赤。422 (バリデーション) はユーザー起因のため成功に含む。",
+      "id": 53,
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "100 * sum(increase(http_server_duration_milliseconds_count{service_name=\"order\",http_target=\"/orders\",http_method=\"POST\",http_status_code!~\"5..\"}[$__range])) / clamp_min(sum(increase(http_server_duration_milliseconds_count{service_name=\"order\",http_target=\"/orders\",http_method=\"POST\"}[$__range])), 1)",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 2,
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 99 },
+              { "color": "green", "value": 99.5 }
+            ]
+          },
+          "color": { "mode": "thresholds" }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "注文確定 ビジネス成功率 (在庫切れ含む)",
+      "description": "confirmed / (confirmed + failed)。FAILED は在庫不足 (ビジネス起因の拒否) を含むため、これは信頼性 SLI ではなくビジネス指標。システム信頼性は上記の HTTP 可用性で見る。SLO: ≥99% 緑 / ≥95% 黄 / <95% 赤。",
+      "id": 54,
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "100 * sum(increase(order_status_transitions_total{status=\"confirmed\"}[$__range])) / clamp_min(sum(increase(order_status_transitions_total{status=~\"confirmed|failed\"}[$__range])), 1)",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 2,
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 95 },
+              { "color": "green", "value": 99 }
+            ]
+          },
+          "color": { "mode": "thresholds" }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "閲覧 レイテンシ SLI p95 / p99 (inventory)",
+      "description": "inventory HTTP サーバレイテンシ (秒)。赤の水平線が SLO しきい (0.5s)。",
+      "id": 55,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket{service_name=\"inventory\"}[$__rate_interval])))",
+          "legendFormat": "p95"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_request_duration_seconds_bucket{service_name=\"inventory\"}[$__rate_interval])))",
+          "legendFormat": "p99"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "thresholdsStyle": { "mode": "line" }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 0.5 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "注文作成 レイテンシ SLI p95 / p99 (order POST /orders)",
+      "description": "order の POST /orders レイテンシ (ミリ秒)。赤の水平線が SLO しきい (500ms)。",
+      "id": 56,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_duration_milliseconds_bucket{service_name=\"order\",http_target=\"/orders\",http_method=\"POST\"}[$__rate_interval])))",
+          "legendFormat": "p95"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_duration_milliseconds_bucket{service_name=\"order\",http_target=\"/orders\",http_method=\"POST\"}[$__rate_interval])))",
+          "legendFormat": "p99"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "thresholdsStyle": { "mode": "line" }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 500 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      }
+    },
+    {
+      "type": "row",
+      "title": "サマリ",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 13 },
       "id": 1,
       "collapsed": false
     },
@@ -22,7 +277,7 @@
       "title": "注文作成数 (期間内)",
       "description": "選択期間に PENDING で作成された注文の総数。",
       "id": 2,
-      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 14 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
@@ -50,9 +305,9 @@
     {
       "type": "stat",
       "title": "在庫予約 成功率",
-      "description": "inventory.reservations の成功割合 (選択期間)。",
+      "description": "inventory.reservations の成功割合 (選択期間)。失敗には在庫不足 (ビジネス起因) を含むため、これは saga ステップのビジネス成功率であり純粋な信頼性 SLI ではない。",
       "id": 3,
-      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 14 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
@@ -92,7 +347,7 @@
       "title": "確定注文 (CONFIRMED)",
       "description": "選択期間に CONFIRMED へ遷移した注文数。",
       "id": 4,
-      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 14 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
@@ -122,7 +377,7 @@
       "title": "失敗注文 (FAILED)",
       "description": "選択期間に FAILED へ遷移した注文数 (在庫不足など)。",
       "id": 5,
-      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 14 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
@@ -157,7 +412,7 @@
     {
       "type": "row",
       "title": "注文 & 在庫 saga",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
       "id": 6,
       "collapsed": false
     },
@@ -166,7 +421,7 @@
       "title": "注文ステータス遷移レート",
       "description": "order.status.transitions を status 別に 1 秒あたりのレートで表示。",
       "id": 7,
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 19 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
@@ -193,7 +448,7 @@
       "title": "在庫予約 成功/失敗レート",
       "description": "inventory.reservations を result 別に 1 秒あたりのレートで表示。",
       "id": 8,
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 19 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
@@ -221,7 +476,7 @@
     {
       "type": "row",
       "title": "HTTP (order サービス)",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 27 },
       "id": 9,
       "collapsed": false
     },
@@ -230,7 +485,7 @@
       "title": "HTTP リクエストレート (ステータス別)",
       "description": "order の FastAPI サーバリクエストレート (http.server.duration の count から)。",
       "id": 10,
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 15 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
@@ -257,7 +512,7 @@
       "title": "HTTP レイテンシ (p50 / p95 / p99)",
       "description": "order の HTTP サーバレイテンシ分位点 (ミリ秒)。",
       "id": 11,
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 15 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
@@ -294,7 +549,7 @@
     {
       "type": "row",
       "title": "inventory ランタイム & DB",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 36 },
       "id": 12,
       "collapsed": false
     },
@@ -303,7 +558,7 @@
       "title": "Go goroutine 数 (inventory)",
       "description": "go.goroutine.count。",
       "id": 13,
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 24 },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 37 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
@@ -327,7 +582,7 @@
       "title": "Go 使用メモリ (inventory)",
       "description": "go.memory.used。",
       "id": 14,
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 24 },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 37 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
@@ -351,7 +606,7 @@
       "title": "DB オペレーション p95 (inventory / pgx)",
       "description": "db.client.operation.duration の p95 を pgx 操作種別ごとに表示。",
       "id": 15,
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 24 },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 37 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
@@ -373,7 +628,7 @@
     {
       "type": "row",
       "title": "ログ (Loki)",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 32 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 45 },
       "id": 16,
       "collapsed": false
     },
@@ -382,7 +637,7 @@
       "title": "アプリケーションログ (order / inventory)",
       "description": "両サービスのログ。各行の trace_id からトレースへジャンプできる。",
       "id": 17,
-      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 33 },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 46 },
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {

@@ -292,6 +292,11 @@ header key は両側とも W3C `traceparent` で互換。
 
 | 区分 | パネル | 主なクエリ (指標) |
 |------|--------|-------------------|
+| **SLI/SLO** | 閲覧 可用性 (inventory 非5xx率) | `http_server_request_duration_seconds_count{service_name="inventory"}` の非5xx率。SLO ≥99.9% |
+| **SLI/SLO** | 閲覧 p95 レイテンシ (inventory) | `histogram_quantile(0.95, …http_server_request_duration_seconds_bucket{service_name="inventory"}…)` (秒)。SLO <0.5s |
+| **SLI/SLO** | 注文作成 可用性 (order POST /orders) | `http_server_duration_milliseconds_count{service_name="order",http_target="/orders",http_method="POST"}` の非5xx率。SLO ≥99.5% |
+| **SLI/SLO** | 注文確定 ビジネス成功率 | `confirmed/(confirmed+failed)` = `order_status_transitions_total`。**在庫切れ (FAILED) を含むビジネス指標**。SLO ≥99% (黄 ≥95%) |
+| **SLI/SLO** | 閲覧 / 注文作成 レイテンシ p95・p99 + SLO しきい線 | 上記 bucket の分位点 (inventory=秒 0.5s 線 / order=ms 500ms 線) |
 | サマリ | 注文作成数 / 予約成功率 / 確定 / 失敗 | `order_status_transitions_total`, `inventory_reservations_total` |
 | saga | 注文ステータス遷移レート | `sum by (status)(rate(order_status_transitions_total[…]))` |
 | saga | 在庫予約 成功/失敗レート | `sum by (result)(rate(inventory_reservations_total[…]))` |
@@ -301,6 +306,19 @@ header key は両側とも W3C `traceparent` で互換。
 
 > **指標名の注意**: OTel → Prometheus 変換でドットは `_`、カウンタには `_total`、単位が名前に付く
 > (例: `http.server.duration` ms → `http_server_duration_milliseconds_*`)。
-> HTTP は新 semconv の `http_server_request_duration_seconds` ではなく、FastAPI 計装が出力する
-> **ミリ秒ヒストグラム** `http_server_duration_milliseconds_*` に実データが乗る点に注意。
+>
+> **HTTP メトリクスは2サービスで semconv が異なる**:
+> - **order (FastAPI 計装)**: 旧 semconv の**ミリ秒**ヒストグラム
+>   `http_server_duration_milliseconds_*`。ラベルは `http_status_code` / `http_method` /
+>   `http_target` (実パス。`/orders/{id}` は具体 ID が入り、OPTIONS では欠落)。
+> - **inventory (otelgin 計装)**: 新 semconv の**秒**ヒストグラム
+>   `http_server_request_duration_seconds_*`。ラベルは `http_response_status_code` /
+>   `http_request_method` / `http_route` (テンプレート化済み: `/inventories`, `/inventories/:id`)。
+>
+> したがって HTTP 系の横断クエリは**メトリクス名・単位・ラベル名を両サービスで書き分ける**必要がある。
+
+> **SLI の解釈上の注意**: 「注文確定 ビジネス成功率」と「在庫予約 成功率」は、在庫不足
+> (ビジネス起因の拒否) を失敗として数える。純粋な**信頼性 SLI ではなくビジネス指標**であり、
+> システム信頼性は HTTP 非5xx 可用性で判断する。在庫切れとシステムエラーを分離するには
+> カウンタのラベル分割 (計装変更) が必要で、本ダッシュボードのスコープ外。
 ```
