@@ -32,7 +32,9 @@ async def run() -> None:
     logging.getLogger().addHandler(LoggingHandler())
     AsyncPGInstrumentor().instrument()
 
-    pool = await asyncpg.create_pool(cfg.database_url)
+    # 接続プールの下限/上限を明示。デフォルト (min=10/max=10) は小さく、閲覧負荷で
+    # 接続が枯渇して待ち行列になりレイテンシが跳ねるため余裕を持たせる。
+    pool = await asyncpg.create_pool(cfg.database_url, min_size=5, max_size=20)
     if pool is None:
         logger.error("failed to create database pool")
         sys.exit(1)
@@ -68,6 +70,7 @@ async def run() -> None:
         await asyncio.gather(
             server.serve(),
             consumer.run(),
+            producer.run(),
         )
     finally:
         producer.close()

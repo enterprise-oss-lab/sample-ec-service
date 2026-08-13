@@ -1,3 +1,4 @@
+import logging
 import uuid
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
@@ -6,6 +7,8 @@ from opentelemetry import metrics
 
 from internal.domain.order import Order, OrderItem, OrderStatus
 from internal.domain.repository import OrderRepository
+
+logger = logging.getLogger(__name__)
 
 _meter = metrics.get_meter(__name__)
 # 注文ステータス遷移カウンタ order.status.transitions{status=...}
@@ -73,8 +76,10 @@ class OrderUsecase:
         )
         return order
 
-    async def list_orders(self, customer_id: str | None = None) -> list[Order]:
-        return await self._repo.list_all(customer_id=customer_id)
+    async def list_orders(
+        self, customer_id: str | None = None, limit: int = 100
+    ) -> list[Order]:
+        return await self._repo.list_all(customer_id=customer_id, limit=limit)
 
     async def get_order(self, id: str) -> Order:
         return await self._repo.find_by_id(id)
@@ -87,6 +92,17 @@ class OrderUsecase:
 
     async def handle_reservation_result(self, result: ReservationResult) -> None:
         order = await self._repo.find_by_correlation_id(result.correlation_id)
+        # PENDING 以外の注文は既に終端状態 (キャンセル済み等)。予約結果が遅れて
+        # 届いても確定/失敗遷移はできないため、冪等にスキップする。
+        # (キャンセル済み注文への confirm はドメイン違反ではなく正常な競合なので
+        #  ERROR ではなく INFO で記録する。)
+        if order.status != OrderStatus.PENDING:
+            logger.info(
+                "skipping reservation result for order %s in terminal status '%s'",
+                order.id,
+                order.status.value,
+            )
+            return
         if result.success:
             order.confirm()
         else:

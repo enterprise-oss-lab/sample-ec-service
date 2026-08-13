@@ -34,8 +34,11 @@ class OrderResponse(BaseModel):
 
 def create_router(usecase: OrderUsecase) -> APIRouter:
     @router.get("", response_model=list[OrderResponse])
-    async def list_orders(customer_id: str | None = Query(default=None)) -> list[OrderResponse]:
-        orders = await usecase.list_orders(customer_id=customer_id)
+    async def list_orders(
+        customer_id: str | None = Query(default=None),
+        limit: int = Query(default=100, ge=1, le=1000),
+    ) -> list[OrderResponse]:
+        orders = await usecase.list_orders(customer_id=customer_id, limit=limit)
         return [_to_response(o) for o in orders]
 
     @router.post("", status_code=status.HTTP_201_CREATED, response_model=OrderResponse)

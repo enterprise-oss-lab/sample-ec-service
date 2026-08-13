@@ -64,6 +64,11 @@ func main() {
 		os.Exit(1)
 	}
 	poolCfg.ConnConfig.Tracer = otelpgx.NewTracer()
+	// 接続プールの上限/下限を明示する。デフォルト (max(4, NumCPU)) は小さく、
+	// 負荷スパイクで goroutine が急増すると接続取得 (acquire) が待たされて
+	// レイテンシが跳ねるため、余裕を持たせる。
+	poolCfg.MaxConns = 25
+	poolCfg.MinConns = 5
 
 	pool, err := pgxpool.NewWithConfig(ctx, poolCfg)
 	if err != nil {
