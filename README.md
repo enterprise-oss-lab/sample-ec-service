@@ -24,6 +24,9 @@ curl -s -X POST http://localhost:8081/orders \
   -d '{"customer_id": "user-123", "items": [{"inventory_id": 1, "quantity": 2}]}'
 ```
 
+ダッシュボードの全パネルをリアルな値で動かすには、EC 的な負荷を継続生成する k6 スクリプトを使う
+(閲覧多め・購入少なめ、意図的なエラー混入): `k6 run k6/ec-traffic.js` (詳細は [`k6/README.md`](k6/README.md))。
+
 Grafana の Explore で確認できるもの:
 
 - **Tempo (traces)**: `POST /orders` から Kafka を経由して inventory の DB 更新・結果処理まで、
