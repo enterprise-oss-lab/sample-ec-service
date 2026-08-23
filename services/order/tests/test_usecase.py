@@ -74,7 +74,7 @@ class TestListOrders:
 
         result = await uc.list_orders()
         assert len(result) == 2
-        repo.list_all.assert_awaited_once_with(customer_id=None)
+        repo.list_all.assert_awaited_once_with(customer_id=None, limit=100)
 
     async def test_filters_by_customer_id(self):
         orders = [make_pending_order("order-1")]
@@ -84,7 +84,7 @@ class TestListOrders:
 
         result = await uc.list_orders(customer_id="customer-1")
         assert len(result) == 1
-        repo.list_all.assert_awaited_once_with(customer_id="customer-1")
+        repo.list_all.assert_awaited_once_with(customer_id="customer-1", limit=100)
 
 
 class TestGetOrder:

@@ -2,11 +2,13 @@ import asyncio
 import logging
 
 from confluent_kafka import Consumer, KafkaError
+from opentelemetry import propagate, trace
 
 from internal.adapter.kafka.message import ReservationResult as KafkaResult
 from internal.usecase.order import OrderUsecase, ReservationResult
 
 logger = logging.getLogger(__name__)
+tracer = trace.get_tracer(__name__)
 
 
 class KafkaResultConsumer:
@@ -48,19 +50,37 @@ class KafkaResultConsumer:
             self._consumer.close()
 
     async def _process(self, msg) -> None:
-        try:
-            result = KafkaResult.model_validate_json(msg.value())
-        except Exception as exc:
-            logger.error("malformed kafka message key=%s: %s", msg.key(), exc)
-            return
+        # Kafka ヘッダから trace context を抽出し、それを親に consumer span を張る。
+        # span はイベントループ側スレッド (この _process) で開始し、親子ネストを確実にする。
+        carrier = {
+            k: (v.decode() if isinstance(v, bytes) else v)
+            for k, v in (msg.headers() or [])
+        }
+        ctx = propagate.extract(carrier)
 
-        try:
-            await self._usecase.handle_reservation_result(
-                ReservationResult(
-                    correlation_id=result.correlation_id,
-                    success=result.success,
-                    error=result.error,
+        with tracer.start_as_current_span(
+            f"{msg.topic()} process",
+            context=ctx,
+            kind=trace.SpanKind.CONSUMER,
+            attributes={
+                "messaging.system": "kafka",
+                "messaging.destination.name": msg.topic(),
+                "messaging.operation": "process",
+            },
+        ):
+            try:
+                result = KafkaResult.model_validate_json(msg.value())
+            except Exception as exc:
+                logger.error("malformed kafka message key=%s: %s", msg.key(), exc)
+                return
+
+            try:
+                await self._usecase.handle_reservation_result(
+                    ReservationResult(
+                        correlation_id=result.correlation_id,
+                        success=result.success,
+                        error=result.error,
+                    )
                 )
-            )
-        except Exception as exc:
-            logger.error("handle reservation result error: %s", exc)
+            except Exception as exc:
+                logger.error("handle reservation result error: %s", exc)

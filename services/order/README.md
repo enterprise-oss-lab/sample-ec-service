@@ -56,6 +56,12 @@ PENDING ─→ CONFIRMED   (在庫予約成功)
 | `KAFKA_REQUEST_TOPIC` | `inventory.reservation.requests` | 予約リクエストトピック |
 | `KAFKA_RESULT_TOPIC` | `inventory.reservation.results` | 予約結果トピック |
 | `KAFKA_CONSUMER_GROUP` | `order-service` | コンシューマグループ ID |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | (未設定) | OTLP エクスポート先 (例 `http://otel-lgtm:4317`)。未設定ならローカルの既定 `localhost:4317` |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | `grpc` | OTLP プロトコル |
+| `OTEL_SERVICE_NAME` | (未設定) | トレース/メトリクス/ログの service.name (compose では `order`) |
+| `OTEL_RESOURCE_ATTRIBUTES` | (未設定) | 追加リソース属性 (例 `service.namespace=sample-ec,deployment.environment=local`) |
+
+OpenTelemetry の全体設計はリポジトリルートの [`docs/observability.md`](../../docs/observability.md) を参照。
 
 ## 起動方法
 

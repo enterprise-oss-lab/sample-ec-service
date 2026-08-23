@@ -3,6 +3,10 @@ package usecase
 import (
 	"context"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
+
 	"enterprise-oss-lab/sample-ec-service/inventry/internal/domain"
 )
 
@@ -16,10 +20,19 @@ type InventoryUsecase interface {
 
 type inventoryUsecase struct {
 	repo domain.InventoryRepository
+	// reservations counts reservation attempts, split by result=success|failure.
+	reservations metric.Int64Counter
 }
 
 func NewInventoryUsecase(repo domain.InventoryRepository) InventoryUsecase {
-	return &inventoryUsecase{repo: repo}
+	meter := otel.Meter("enterprise-oss-lab/sample-ec-service/inventry/usecase")
+	// A no-op counter is returned on error, so this is always safe to call.
+	reservations, _ := meter.Int64Counter(
+		"inventory.reservations",
+		metric.WithDescription("Number of inventory reservation attempts by result"),
+		metric.WithUnit("{reservation}"),
+	)
+	return &inventoryUsecase{repo: repo, reservations: reservations}
 }
 
 func (u *inventoryUsecase) ListInventories(ctx context.Context) ([]*domain.Inventory, error) {
@@ -31,7 +44,7 @@ func (u *inventoryUsecase) GetInventory(ctx context.Context, id int) (*domain.In
 }
 
 func (u *inventoryUsecase) Reserve(ctx context.Context, id int, quantity int) error {
-	return u.repo.RunInTx(ctx, func(txRepo domain.InventoryRepository) error {
+	err := u.repo.RunInTx(ctx, func(txRepo domain.InventoryRepository) error {
 		inv, err := txRepo.FindByID(ctx, id)
 		if err != nil {
 			return err
@@ -41,6 +54,16 @@ func (u *inventoryUsecase) Reserve(ctx context.Context, id int, quantity int) er
 		}
 		return txRepo.Save(ctx, inv)
 	})
+
+	result := "success"
+	if err != nil {
+		result = "failure"
+	}
+	if u.reservations != nil {
+		u.reservations.Add(ctx, 1, metric.WithAttributes(attribute.String("result", result)))
+	}
+
+	return err
 }
 
 func (u *inventoryUsecase) Restock(ctx context.Context, id int, quantity int) error {
