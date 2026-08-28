@@ -182,3 +182,9 @@ result topic に失敗メッセージが届き、在庫は変化しない。
 | `KAFKA_REQUEST_TOPIC` | `inventory.reservation.requests` | 引き当てリクエスト受信トピック |
 | `KAFKA_RESULT_TOPIC` | `inventory.reservation.results` | 結果送信トピック |
 | `KAFKA_CONSUMER_GROUP` | `inventory-service` | Consumer group ID |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | (未設定) | OTLP エクスポート先 (例 `http://otel-lgtm:4317`)。未設定ならローカルの既定 `localhost:4317` |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | `grpc` | OTLP プロトコル |
+| `OTEL_SERVICE_NAME` | (未設定) | トレース/メトリクス/ログの service.name (compose では `inventory`) |
+| `OTEL_RESOURCE_ATTRIBUTES` | (未設定) | 追加リソース属性 (例 `service.namespace=sample-ec,deployment.environment=local`) |
+
+OpenTelemetry の全体設計はリポジトリルートの [`docs/observability.md`](../../docs/observability.md) を参照。

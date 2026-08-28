@@ -4,10 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"strings"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"go.opentelemetry.io/contrib/bridges/otelslog"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 
 	"enterprise-oss-lab/sample-ec-service/inventry/internal/usecase"
 )
@@ -16,6 +21,8 @@ type Consumer struct {
 	consumer *kafka.Consumer
 	usecase  usecase.InventoryUsecase
 	producer *Producer
+	tracer   trace.Tracer
+	logger   *slog.Logger
 }
 
 func NewConsumer(brokers []string, topic, groupID string, uc usecase.InventoryUsecase, p *Producer) (*Consumer, error) {
@@ -32,7 +39,13 @@ func NewConsumer(brokers []string, topic, groupID string, uc usecase.InventoryUs
 		c.Close()
 		return nil, fmt.Errorf("subscribe: %w", err)
 	}
-	return &Consumer{consumer: c, usecase: uc, producer: p}, nil
+	return &Consumer{
+		consumer: c,
+		usecase:  uc,
+		producer: p,
+		tracer:   otel.Tracer(instrumentationName),
+		logger:   otelslog.NewLogger(instrumentationName),
+	}, nil
 }
 
 func (c *Consumer) Run(ctx context.Context) error {
@@ -46,24 +59,47 @@ func (c *Consumer) Run(ctx context.Context) error {
 		}
 		switch e := ev.(type) {
 		case *kafka.Message:
-			result := c.process(ctx, e)
-			if err := c.producer.Publish(ctx, result); err != nil {
-				log.Printf("kafka publish error (will not commit): %v", err)
-				continue
-			}
-			if _, err := c.consumer.CommitMessage(e); err != nil {
-				log.Printf("kafka commit error: %v", err)
-			}
+			c.handleMessage(ctx, e)
 		case kafka.Error:
-			log.Printf("kafka error: %v", e)
+			c.logger.ErrorContext(ctx, "kafka error", "error", e)
 		}
+	}
+}
+
+// handleMessage extracts the propagated trace context from the message headers,
+// starts a consumer span parented to it, and threads that context through the
+// reservation work and the result publish so the whole saga stays on one trace.
+func (c *Consumer) handleMessage(ctx context.Context, msg *kafka.Message) {
+	topic := topicName(msg)
+
+	// Extract the parent context injected by the upstream producer (traceparent).
+	parentCtx := otel.GetTextMapPropagator().Extract(ctx, NewKafkaHeaderCarrier(&msg.Headers))
+	msgCtx, span := c.tracer.Start(parentCtx, "consume "+topic,
+		trace.WithSpanKind(trace.SpanKindConsumer),
+		trace.WithAttributes(
+			attribute.String("messaging.system", "kafka"),
+			attribute.String("messaging.operation", "receive"),
+			attribute.String("messaging.destination.name", topic),
+		),
+	)
+	defer span.End()
+
+	result := c.process(msgCtx, msg)
+	if err := c.producer.Publish(msgCtx, result); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		c.logger.ErrorContext(msgCtx, "kafka publish error (will not commit)", "error", err)
+		return
+	}
+	if _, err := c.consumer.CommitMessage(msg); err != nil {
+		c.logger.ErrorContext(msgCtx, "kafka commit error", "error", err)
 	}
 }
 
 func (c *Consumer) process(ctx context.Context, msg *kafka.Message) ReservationResult {
 	var req ReservationRequest
 	if err := json.Unmarshal(msg.Value, &req); err != nil {
-		log.Printf("malformed kafka message key=%s: %v", msg.Key, err)
+		c.logger.ErrorContext(ctx, "malformed kafka message", "key", string(msg.Key), "error", err)
 		return ReservationResult{
 			CorrelationID: string(msg.Key),
 			Success:       false,
@@ -92,4 +128,12 @@ func (c *Consumer) process(ctx context.Context, msg *kafka.Message) ReservationR
 
 func (c *Consumer) Close() error {
 	return c.consumer.Close()
+}
+
+// topicName returns the message's topic, or "unknown" if unset.
+func topicName(msg *kafka.Message) string {
+	if msg.TopicPartition.Topic != nil {
+		return *msg.TopicPartition.Topic
+	}
+	return "unknown"
 }
