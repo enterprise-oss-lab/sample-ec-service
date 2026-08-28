@@ -59,6 +59,30 @@ curl -X POST http://localhost:8080/inventories/1/reserve \
 # → 204 No Content
 ```
 
+### カタログ参照
+
+商品のカタログ属性 (名前・説明・価格・画像) は在庫数と**更新頻度が違う**ため、`inventories` とは
+別テーブル `products` に分けてある。在庫数は毎秒変わるがカタログは日〜月単位でしか変わらないので、
+この境界がそのままキャッシュの境界になる (経緯は [`db/migrations/003_create_products.sql`](db/migrations/003_create_products.sql) のコメント参照)。
+
+```bash
+curl http://localhost:8080/products/1
+```
+
+```json
+{"id":1,"name":"Tシャツ（M）","description":"6.2oz ヘビーウェイト天竺。洗濯を繰り返しても首元が伸びにくい。","price":2980,"image_url":"https://placehold.co/400x300?text=T-Shirt+M"}
+```
+
+一覧は `GET /products`。エラー時のレスポンスは在庫 API と同じ形式。
+
+```bash
+curl http://localhost:8080/products/9999
+# {"error":"product not found"}  → 404
+
+curl http://localhost:8080/products/abc
+# {"error":"invalid id"}         → 400
+```
+
 ---
 
 ## Kafka による非同期在庫引き当て

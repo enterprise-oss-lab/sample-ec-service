@@ -85,6 +85,10 @@ func main() {
 	repo := postgres.NewInventoryRepository(pool)
 	uc := usecase.NewInventoryUsecase(repo)
 
+	// カタログは在庫と更新頻度が違うため別テーブル・別ハンドラに分けている
+	// (db/migrations/003_create_products.sql のコメント参照)。
+	productUC := usecase.NewProductUsecase(postgres.NewProductRepository(pool))
+
 	producer, err := kafkaadapter.NewProducer(cfg.Kafka.Brokers, cfg.Kafka.ResultTopic)
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to create kafka producer", "error", err)
@@ -121,6 +125,7 @@ func main() {
 		AllowHeaders: []string{"Content-Type", "Authorization"},
 	}))
 	h.RegisterRoutes(r)
+	httphandler.NewProductHandler(productUC).RegisterRoutes(r)
 
 	addr := ":" + cfg.Port
 	srv := &http.Server{Addr: addr, Handler: r}
