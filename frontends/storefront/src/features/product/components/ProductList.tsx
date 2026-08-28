@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { useProducts } from '../hooks/useProducts'
+import { useStocks } from '../hooks/useStocks'
 import { useCreateOrder } from '../../order/hooks/useCreateOrder'
 import { useFlash } from '@/shared/Flash'
 
@@ -17,7 +18,10 @@ const ProductPlaceholder = (_: { id: number }) => (
 export const ProductList = () => {
   const navigate = useNavigate()
   const { flash } = useFlash()
-  const { data, isPending, isError } = useProducts()
+  // カタログと在庫は別クエリ。staleTime が違う (api.ts のコメント参照) ため、
+  // 1本にまとめるとカタログを長く寝かせられなくなる。
+  const { data: products, isPending: productsPending, isError: productsError } = useProducts()
+  const { data: stocks, isPending: stocksPending, isError: stocksError } = useStocks()
   const { mutate: order, isPending: isOrdering, variables } = useCreateOrder({
     onSuccess: () => {
       flash('注文が完了しました')
@@ -26,7 +30,7 @@ export const ProductList = () => {
   })
   const [quantities, setQuantities] = useState<Record<number, number>>({})
 
-  if (isPending) return (
+  if (productsPending || stocksPending) return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {[...Array(6)].map((_, i) => (
         <div key={i} className="rounded-lg overflow-hidden bg-panel animate-pulse">
@@ -41,7 +45,7 @@ export const ProductList = () => {
     </div>
   )
 
-  if (isError) return (
+  if (productsError || stocksError) return (
     <div className="py-16 text-center">
       <p className="text-dim text-sm">商品の取得に失敗しました</p>
     </div>
@@ -51,29 +55,39 @@ export const ProductList = () => {
   const setQty = (id: number, value: number) =>
     setQuantities((prev) => ({ ...prev, [id]: value }))
 
+  const countById = new Map(stocks.map((s) => [s.id, s.count]))
+
   return (
     <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {data.map((product, i) => {
+      {products.map((product, i) => {
         const isThisOrdering = isOrdering && variables?.items[0]?.inventory_id === product.id
         const qty = getQty(product.id)
-        const outOfStock = product.count === 0
+        const count = countById.get(product.id) ?? 0
+        const outOfStock = count === 0
         return (
           <li
             key={product.id}
             className="animate-fade-in-up bg-panel hover:bg-panel-hover rounded-lg overflow-hidden transition-colors duration-150 flex flex-col border border-transparent hover:border-sage/20"
             style={{ animationDelay: `${i * 0.05}s` }}
           >
-            <ProductPlaceholder id={product.id} />
+            <Link to={`/products/${product.id}`} className="block">
+              <ProductPlaceholder id={product.id} />
+            </Link>
 
             <div className="p-4 flex flex-col flex-1">
               <h3 className="font-semibold text-pale text-[0.95rem] leading-snug mb-0.5">
-                {product.name}
+                <Link
+                  to={`/products/${product.id}`}
+                  className="hover:text-sage transition-colors duration-150"
+                >
+                  {product.name}
+                </Link>
               </h3>
               <p className="text-sage font-semibold text-[0.95rem] mb-1">
                 ¥{product.price.toLocaleString()}
               </p>
               <p className={`text-[0.75rem] mb-4 ${outOfStock ? 'text-red-400' : 'text-dim'}`}>
-                {outOfStock ? '在庫なし' : `在庫: ${product.count}点`}
+                {outOfStock ? '在庫なし' : `在庫: ${count}点`}
               </p>
 
               <div className="mt-auto space-y-2">
@@ -89,17 +103,17 @@ export const ProductList = () => {
                     <input
                       type="number"
                       min={1}
-                      max={product.count}
+                      max={count}
                       value={qty}
                       onChange={(e) => {
-                        const v = Math.min(Math.max(1, Number(e.target.value)), product.count)
+                        const v = Math.min(Math.max(1, Number(e.target.value)), count)
                         setQty(product.id, isNaN(v) ? 1 : v)
                       }}
                       className="w-12 rounded border border-border bg-transparent text-center text-sm text-pale focus:outline-none focus:ring-1 focus:ring-sage/40 focus:border-sage/60 transition-colors duration-150"
                     />
                     <button
                       className="h-7 w-7 rounded border border-border text-dim transition-colors duration-150 hover:border-sage hover:text-sage disabled:cursor-not-allowed disabled:opacity-30 bg-transparent"
-                      disabled={qty >= product.count}
+                      disabled={qty >= count}
                       onClick={() => setQty(product.id, qty + 1)}
                     >
                       ＋

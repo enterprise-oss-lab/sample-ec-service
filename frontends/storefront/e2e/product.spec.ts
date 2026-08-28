@@ -7,10 +7,41 @@ const mockInventories = [
   { id: 2, name: 'Out of Stock', count: 0 },
 ]
 
+// カタログは在庫とは別エンドポイント (更新頻度が違うため分離されている)
+const mockProducts = [
+  {
+    id: 1,
+    name: 'Product A',
+    description: 'Product A の説明文',
+    price: 1200,
+    image_url: 'https://example.test/a.png',
+  },
+  {
+    id: 2,
+    name: 'Out of Stock',
+    description: '在庫切れ商品の説明文',
+    price: 3400,
+    image_url: 'https://example.test/b.png',
+  },
+]
+
 test.describe('商品一覧ページ', () => {
   test.beforeEach(async ({ page }) => {
     await page.route(`${INVENTORY_API}/inventories`, (route) => {
       route.fulfill({ json: mockInventories })
+    })
+    await page.route(`${INVENTORY_API}/inventories/*`, (route) => {
+      const id = Number(new URL(route.request().url()).pathname.split('/').pop())
+      const stock = mockInventories.find((i) => i.id === id)
+      route.fulfill(stock ? { json: stock } : { status: 404, json: { error: 'inventory not found' } })
+    })
+    await page.route(`${INVENTORY_API}/products`, (route) => {
+      route.fulfill({ json: mockProducts })
+    })
+    await page.route(`${INVENTORY_API}/products/*`, (route) => {
+      const id = Number(new URL(route.request().url()).pathname.split('/').pop())
+      const product = mockProducts.find((p) => p.id === id)
+      route.fulfill(product ? { json: product } : { status: 404, json: { error: 'product not found' } })
     })
     await page.route('http://localhost:8081/orders', (route) => {
       if (route.request().method() === 'POST') {
@@ -70,5 +101,54 @@ test.describe('商品一覧ページ', () => {
     const outOfStockItem = listItems.filter({ hasText: 'Out of Stock' }).first()
 
     await expect(outOfStockItem.getByRole('button', { name: '在庫なし' })).toBeDisabled()
+  })
+})
+
+test.describe('商品詳細ページ', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.route(`${INVENTORY_API}/products/*`, (route) => {
+      const id = Number(new URL(route.request().url()).pathname.split('/').pop())
+      const product = mockProducts.find((p) => p.id === id)
+      route.fulfill(product ? { json: product } : { status: 404, json: { error: 'product not found' } })
+    })
+    await page.route(`${INVENTORY_API}/inventories/*`, (route) => {
+      const id = Number(new URL(route.request().url()).pathname.split('/').pop())
+      const stock = mockInventories.find((i) => i.id === id)
+      route.fulfill(stock ? { json: stock } : { status: 404, json: { error: 'inventory not found' } })
+    })
+    await page.route('http://localhost:8081/orders', (route) => {
+      if (route.request().method() === 'POST') {
+        route.fulfill({ status: 201, json: { id: 'order-new' } })
+      } else {
+        route.fulfill({ json: [] })
+      }
+    })
+  })
+
+  test('カタログ属性と在庫が表示される', async ({ page }) => {
+    await page.goto('/products/1')
+    // getByText('Product A') は説明文にも部分一致して strict mode 違反になる
+    await expect(page.getByRole('heading', { name: 'Product A' })).toBeVisible()
+    await expect(page.getByText('¥1,200')).toBeVisible()
+    await expect(page.getByText('Product A の説明文')).toBeVisible()
+    await expect(page.getByTestId('stock-label')).toHaveText('在庫: 5点')
+  })
+
+  test('存在しない商品は not found を表示する', async ({ page }) => {
+    await page.goto('/products/9999')
+    await expect(page.getByText('商品が見つかりませんでした')).toBeVisible()
+  })
+
+  test('一覧から商品詳細へ遷移できる', async ({ page }) => {
+    await page.route(`${INVENTORY_API}/inventories`, (route) => {
+      route.fulfill({ json: mockInventories })
+    })
+    await page.route(`${INVENTORY_API}/products`, (route) => {
+      route.fulfill({ json: mockProducts })
+    })
+    await page.goto('/products')
+    await page.getByRole('link', { name: 'Product A' }).click()
+    await expect(page).toHaveURL('/products/1')
+    await expect(page.getByText('Product A の説明文')).toBeVisible()
   })
 })

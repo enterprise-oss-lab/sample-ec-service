@@ -39,9 +39,28 @@ src/
 
 現在のルート:
 - `/` → `HomePage`
+- `/products` → `ProductPage`（商品一覧）
+- `/products/:id` → `ProductDetailPage`（商品詳細）
 - `/orders` → `OrderPage`
+- `/account` → `AccountPage`
+- `/cart` → `CartPage`
 
 新規ページは `pages/` に追加し、`main.tsx` でルート登録する。
+
+URL パラメータを取るページのテストは、`renderWithProviders` の `initialEntries` で初期 URL を渡す
+（Router は入れ子にできないため、テスト側で `MemoryRouter` を重ねることはできない）。
+
+### API の分離方針
+
+`features/product` は**カタログ**と**在庫**を別リソースとして扱う。
+
+| | エンドポイント | `staleTime` |
+|---|---|---|
+| カタログ（名前・説明・価格・画像） | `GET /products` | 1時間 |
+| 在庫数 | `GET /inventories` | 0 |
+
+更新頻度が違うため分けてある。1本の API にまとめると、毎秒変わる在庫数のせいで
+カタログ側もキャッシュできなくなる。定数は `features/product/api.ts` に定義。
 
 ### スタイリング
 

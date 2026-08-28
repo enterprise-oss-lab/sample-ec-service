@@ -24,7 +24,7 @@ describe('useProducts', () => {
 
   it('失敗時に isError が true になる', async () => {
     server.use(
-      http.get(/\/inventories$/, () => new HttpResponse(null, { status: 500 })),
+      http.get(/\/products$/, () => new HttpResponse(null, { status: 500 })),
     )
     const { result } = renderHookWithProviders(() => useProducts())
     await waitFor(() => expect(result.current.isError).toBe(true))
