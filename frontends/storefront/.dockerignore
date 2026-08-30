@@ -1,0 +1,12 @@
+node_modules
+dist
+dist-ssr
+.vite
+test-results
+playwright-report
+coverage
+.git
+*.log
+.DS_Store
+Dockerfile
+.dockerignore

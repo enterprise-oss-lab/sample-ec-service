@@ -94,6 +94,7 @@ services:
       KAFKA_REQUEST_TOPIC: inventory.reservation.requests
       KAFKA_RESULT_TOPIC: inventory.reservation.results
       KAFKA_CONSUMER_GROUP: inventory-service
+      CORS_ORIGIN: http://localhost:3001
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-lgtm:4317
       OTEL_EXPORTER_OTLP_PROTOCOL: grpc
       OTEL_SERVICE_NAME: inventory
@@ -142,12 +143,24 @@ services:
       KAFKA_REQUEST_TOPIC: inventory.reservation.requests
       KAFKA_RESULT_TOPIC: inventory.reservation.results
       KAFKA_CONSUMER_GROUP: order-service
+      CORS_ORIGINS: http://localhost:3001
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-lgtm:4317
       OTEL_EXPORTER_OTLP_PROTOCOL: grpc
       OTEL_SERVICE_NAME: order
       OTEL_RESOURCE_ATTRIBUTES: service.namespace=sample-ec,deployment.environment=local
     ports:
       - "8081:8080"
+
+  storefront:
+    build:
+      context: ./frontends/storefront
+      dockerfile: Dockerfile
+    container_name: storefront
+    ports:
+      - "3001:80"
+    depends_on:
+      - inventory
+      - order-service
 
 volumes:
   kafka-data:

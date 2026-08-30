@@ -16,3 +16,5 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql://order:password@localhost:5432/order"  # pragma: allowlist secret
     kafka: KafkaSettings = Field(default_factory=KafkaSettings)
+    # CORS 許可オリジン。カンマ区切りで複数指定可（例: dev の 5173 と compose の 3001）。
+    cors_origins: str = "http://localhost:5173"
