@@ -55,7 +55,7 @@ async def run() -> None:
     app = FastAPI(title="Order Service")
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:5173"],
+        allow_origins=[o.strip() for o in cfg.cors_origins.split(",") if o.strip()],
         allow_methods=["*"],
         allow_headers=["*"],
     )
