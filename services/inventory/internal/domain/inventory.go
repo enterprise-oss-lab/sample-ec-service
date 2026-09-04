@@ -8,9 +8,8 @@ var (
 )
 
 type Inventory struct {
-	ID    int    `json:"id"`
-	Name  string `json:"name"`
-	Count int    `json:"count"`
+	ID    int `json:"id"`
+	Count int `json:"count"`
 }
 
 // Reserve は quantity 分の在庫を引当する

@@ -25,10 +25,9 @@ export type Product = {
   imageUrl: string
 }
 
-/** 在庫。GET /inventories のレスポンスそのまま。 */
+/** 在庫。GET /inventories のレスポンスそのまま。商品名は持たない (Product 側の関心)。 */
 export type Stock = {
   id: number
-  name: string
   count: number
 }
 

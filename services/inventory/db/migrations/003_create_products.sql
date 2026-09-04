@@ -9,7 +9,3 @@ CREATE TABLE IF NOT EXISTS products (
     price       INTEGER NOT NULL DEFAULT 0 CHECK (price >= 0),  -- 円 (最小通貨単位)
     image_url   TEXT    NOT NULL DEFAULT ''
 );
-
--- ponytail: name が products と inventories の2箇所にある。products が正で
--- inventories.name は在庫表示用の非正規化コピー。統合すると GET /inventories の
--- レスポンス形が変わる (フロント・k6 が依存) ため、破壊的変更として別PRに分ける。

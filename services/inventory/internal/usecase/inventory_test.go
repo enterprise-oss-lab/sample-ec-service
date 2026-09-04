@@ -46,7 +46,7 @@ func TestGetInventory(t *testing.T) {
 	}{
 		{
 			name:      "正常に在庫を取得できる",
-			stub:      stubInventoryRepository{inventory: &domain.Inventory{ID: 1, Name: "item", Count: 10}},
+			stub:      stubInventoryRepository{inventory: &domain.Inventory{ID: 1, Count: 10}},
 			wantCount: 10,
 		},
 		{
