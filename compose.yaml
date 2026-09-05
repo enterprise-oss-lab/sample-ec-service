@@ -162,6 +162,16 @@ services:
       - inventory
       - order-service
 
+  admin:
+    build:
+      context: ./frontends/admin
+      dockerfile: Dockerfile
+    container_name: admin
+    ports:
+      - "3002:80"
+    depends_on:
+      - inventory
+
 volumes:
   kafka-data:
   inventory_postgres_data:
