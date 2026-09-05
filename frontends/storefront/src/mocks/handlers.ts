@@ -3,8 +3,22 @@ import { http, HttpResponse } from 'msw'
 export const handlers = [
   http.get(/\/inventories$/, () =>
     HttpResponse.json([
-      { id: 1, name: 'Product A', count: 5 },
-      { id: 2, name: 'Out of Stock', count: 0 },
+      {
+        id: 1,
+        name: 'Product A',
+        count: 5,
+        price: 1000,
+        description: 'Product A の説明',
+        image_key: 'products/product-a.jpg',
+      },
+      {
+        id: 2,
+        name: 'Out of Stock',
+        count: 0,
+        price: 2000,
+        description: 'Out of Stock の説明',
+        image_key: null,
+      },
     ]),
   ),
   http.get(/\/orders$/, () =>

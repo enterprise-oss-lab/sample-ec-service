@@ -1,7 +1,12 @@
+import { imageUrl } from '@/shared/imageUrl'
+
 type InventoryItem = {
   id: number
   name: string
   count: number
+  price: number
+  description: string
+  image_key: string | null
 }
 
 export type Product = {
@@ -9,16 +14,20 @@ export type Product = {
   name: string
   count: number
   price: number
-  imageUrl: string
+  description: string
+  imageUrl: string | null
 }
 
 const INVENTORY_API_BASE_URL = import.meta.env.VITE_INVENTORY_API_BASE_URL ?? ''
 
 function toProduct(item: InventoryItem): Product {
   return {
-    ...item,
-    price: 0,
-    imageUrl: 'https://placehold.co/400x300',
+    id: item.id,
+    name: item.name,
+    count: item.count,
+    price: item.price,
+    description: item.description,
+    imageUrl: imageUrl(item.image_key),
   }
 }
 
