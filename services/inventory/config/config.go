@@ -12,11 +12,20 @@ type KafkaConfig struct {
 	ConsumerGroup string
 }
 
+type RustFSConfig struct {
+	Endpoint        string
+	Region          string
+	Bucket          string
+	AccessKeyID     string
+	SecretAccessKey string
+}
+
 type Config struct {
 	DatabaseURL string
 	Port        string
-	CORSOrigin  string
+	CORSOrigins []string
 	Kafka       KafkaConfig
+	RustFS      RustFSConfig
 }
 
 func Load() Config {
@@ -50,20 +59,62 @@ func Load() Config {
 		consumerGroup = "inventory-service"
 	}
 
-	corsOrigin := os.Getenv("CORS_ORIGIN")
-	if corsOrigin == "" {
-		corsOrigin = "http://localhost:5173"
+	corsOrigins := os.Getenv("CORS_ORIGINS")
+	if corsOrigins == "" {
+		corsOrigins = "http://localhost:5173"
+	}
+
+	rustfsEndpoint := os.Getenv("RUSTFS_ENDPOINT")
+	if rustfsEndpoint == "" {
+		rustfsEndpoint = "http://localhost:9000"
+	}
+
+	rustfsRegion := os.Getenv("RUSTFS_REGION")
+	if rustfsRegion == "" {
+		rustfsRegion = "us-east-1"
+	}
+
+	rustfsBucket := os.Getenv("RUSTFS_BUCKET")
+	if rustfsBucket == "" {
+		rustfsBucket = "products"
+	}
+
+	rustfsAccessKeyID := os.Getenv("RUSTFS_ACCESS_KEY_ID")
+	if rustfsAccessKeyID == "" {
+		rustfsAccessKeyID = "rustfsadmin"
+	}
+
+	rustfsSecretAccessKey := os.Getenv("RUSTFS_SECRET_ACCESS_KEY") // pragma: allowlist secret
+	if rustfsSecretAccessKey == "" {
+		rustfsSecretAccessKey = "rustfsadmin" // pragma: allowlist secret
 	}
 
 	return Config{
 		DatabaseURL: dsn,
 		Port:        port,
-		CORSOrigin:  corsOrigin,
+		CORSOrigins: splitAndTrim(corsOrigins, ","),
 		Kafka: KafkaConfig{
 			Brokers:       strings.Split(brokers, ","),
 			RequestTopic:  requestTopic,
 			ResultTopic:   resultTopic,
 			ConsumerGroup: consumerGroup,
 		},
+		RustFS: RustFSConfig{
+			Endpoint:        rustfsEndpoint,
+			Region:          rustfsRegion,
+			Bucket:          rustfsBucket,
+			AccessKeyID:     rustfsAccessKeyID,
+			SecretAccessKey: rustfsSecretAccessKey,
+		},
 	}
+}
+
+func splitAndTrim(s, sep string) []string {
+	var out []string
+	for _, part := range strings.Split(s, sep) {
+		if trimmed := strings.TrimSpace(part); trimmed != "" {
+			out = append(out, trimmed)
+		}
+	}
+	return out
 }

@@ -141,7 +141,12 @@ services:
       KAFKA_REQUEST_TOPIC: inventory.reservation.requests
       KAFKA_RESULT_TOPIC: inventory.reservation.results
       KAFKA_CONSUMER_GROUP: inventory-service
-      CORS_ORIGIN: http://localhost:3001
+      CORS_ORIGINS: http://localhost:3001,http://localhost:3002
+      RUSTFS_ENDPOINT: http://rustfs:9000
+      RUSTFS_REGION: us-east-1
+      RUSTFS_BUCKET: products
+      RUSTFS_ACCESS_KEY_ID: rustfsadmin
+      RUSTFS_SECRET_ACCESS_KEY: rustfsadmin  # pragma: allowlist secret
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-lgtm:4317
       OTEL_EXPORTER_OTLP_PROTOCOL: grpc
       OTEL_SERVICE_NAME: inventory
@@ -155,6 +160,8 @@ services:
         condition: service_completed_successfully
       otel-lgtm:
         condition: service_started
+      rustfs-init:
+        condition: service_completed_successfully
 
   order-db:
     image: postgres:17-alpine
