@@ -66,4 +66,7 @@ export const handlers = [
     }),
   ),
   http.delete(/\/admin\/inventories\/\d+$/, () => new HttpResponse(null, { status: 204 })),
+  http.post(/\/admin\/images$/, () =>
+    HttpResponse.json({ image_key: 'products/mock-uuid.jpg' }, { status: 201 }),
+  ),
 ]

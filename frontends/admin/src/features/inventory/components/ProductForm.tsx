@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Input, Textarea } from '@/shared/ui/Input'
 import { Button } from '@/shared/ui/Button'
+import { ImageUploader } from '@/features/image/components/ImageUploader'
 
 export type ProductFormValues = {
   name: string
@@ -23,7 +24,7 @@ export const ProductForm = ({ mode, initialValues, onSubmit, isSubmitting, error
   const [price, setPrice] = useState(initialValues?.price ?? 0)
   const [description, setDescription] = useState(initialValues?.description ?? '')
   const [count, setCount] = useState(initialValues?.count ?? 0)
-  const [imageKey] = useState(initialValues?.imageKey ?? null)
+  const [imageKey, setImageKey] = useState(initialValues?.imageKey ?? null)
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
@@ -55,6 +56,7 @@ export const ProductForm = ({ mode, initialValues, onSubmit, isSubmitting, error
         onChange={(e) => setDescription(e.target.value)}
         rows={4}
       />
+      <ImageUploader imageKey={imageKey} onChange={setImageKey} disabled={isSubmitting} />
       {mode === 'create' && (
         <Input
           id="product-count"
