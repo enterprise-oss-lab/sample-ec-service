@@ -24,7 +24,7 @@ describe('fetchProducts', () => {
       count: 5,
       price: 1000,
       description: '説明A',
-      imageUrl: `${import.meta.env.VITE_IMAGE_BASE_URL}/products/a.jpg`,
+      imageUrl: `${import.meta.env.VITE_IMAGE_BASE_URL ?? ''}/products/a.jpg`,
     })
     expect(products[1]).toMatchObject({
       id: 2,
