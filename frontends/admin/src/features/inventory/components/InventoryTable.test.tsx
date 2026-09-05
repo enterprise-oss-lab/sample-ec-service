@@ -45,6 +45,17 @@ describe('InventoryTable', () => {
     expect(screen.getByText('Out of Stock')).toBeInTheDocument()
   })
 
+  it('image_key がある商品は img タグで画像を表示する', () => {
+    renderWithProviders(<InventoryTable inventories={inventories} />)
+    const img = within(findRow('Product A')).getByRole('img', { name: 'Product A' }) as HTMLImageElement
+    expect(img.src).toContain('products/product-a.jpg')
+  })
+
+  it('image_key が無い商品はプレースホルダーにフォールバックする', () => {
+    renderWithProviders(<InventoryTable inventories={inventories} />)
+    expect(within(findRow('Out of Stock')).queryByRole('img')).not.toBeInTheDocument()
+  })
+
   it('＋ ボタンで在庫調整 API が呼ばれ、一覧が更新される', async () => {
     server.use(
       http.post(/\/admin\/inventories\/1\/adjust$/, () => new HttpResponse(null, { status: 204 })),
