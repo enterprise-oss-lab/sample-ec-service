@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test'
 
-const INVENTORY_API = 'http://localhost:18080'
+const INVENTORY_API = 'http://localhost:18081'
 
 const mockInventories = [
-  { id: 1, name: 'Product A', count: 5 },
-  { id: 2, name: 'Out of Stock', count: 0 },
+  { id: 1, name: 'Product A', count: 5, price: 1000, description: '素材にこだわった一品です', image_key: 'products/product-a.jpg' },
+  { id: 2, name: 'Out of Stock', count: 0, price: 2000, description: '定番のロングセラー商品', image_key: null },
 ]
 
 test.describe('商品一覧ページ', () => {

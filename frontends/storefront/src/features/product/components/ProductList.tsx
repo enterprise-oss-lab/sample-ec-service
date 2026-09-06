@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router'
 import { useProducts } from '../hooks/useProducts'
 import { useCreateOrder } from '../../order/hooks/useCreateOrder'
 import { useFlash } from '@/shared/Flash'
+import type { Product } from '../api'
 
 const ProductPlaceholder = (_: { id: number }) => (
   <div className="w-full aspect-square bg-sage-light/30 flex items-center justify-center">
@@ -13,6 +14,21 @@ const ProductPlaceholder = (_: { id: number }) => (
     </svg>
   </div>
 )
+
+const ProductImage = ({ product }: { product: Product }) => {
+  const [failed, setFailed] = useState(false)
+
+  if (!product.imageUrl || failed) return <ProductPlaceholder id={product.id} />
+
+  return (
+    <img
+      src={product.imageUrl}
+      alt={product.name}
+      className="w-full aspect-square object-cover"
+      onError={() => setFailed(true)}
+    />
+  )
+}
 
 export const ProductList = () => {
   const navigate = useNavigate()
@@ -63,7 +79,7 @@ export const ProductList = () => {
             className="animate-fade-in-up bg-panel hover:bg-panel-hover rounded-lg overflow-hidden transition-colors duration-150 flex flex-col border border-transparent hover:border-sage/20"
             style={{ animationDelay: `${i * 0.05}s` }}
           >
-            <ProductPlaceholder id={product.id} />
+            <ProductImage product={product} />
 
             <div className="p-4 flex flex-col flex-1">
               <h3 className="font-semibold text-pale text-[0.95rem] leading-snug mb-0.5">
@@ -72,6 +88,9 @@ export const ProductList = () => {
               <p className="text-sage font-semibold text-[0.95rem] mb-1">
                 ¥{product.price.toLocaleString()}
               </p>
+              {product.description && (
+                <p className="text-[0.75rem] text-dim mb-1 line-clamp-2">{product.description}</p>
+              )}
               <p className={`text-[0.75rem] mb-4 ${outOfStock ? 'text-red-400' : 'text-dim'}`}>
                 {outOfStock ? '在庫なし' : `在庫: ${product.count}点`}
               </p>

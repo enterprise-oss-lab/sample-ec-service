@@ -10,8 +10,8 @@ describe('fetchProducts', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve([
-        { id: 1, name: 'Product A', count: 5 },
-        { id: 2, name: 'Out of Stock', count: 0 },
+        { id: 1, name: 'Product A', count: 5, price: 1000, description: '説明A', image_key: 'products/a.jpg' },
+        { id: 2, name: 'Out of Stock', count: 0, price: 2000, description: '説明B', image_key: null },
       ]),
     }))
 
@@ -22,8 +22,17 @@ describe('fetchProducts', () => {
       id: 1,
       name: 'Product A',
       count: 5,
-      price: 0,
-      imageUrl: 'https://placehold.co/400x300',
+      price: 1000,
+      description: '説明A',
+      imageUrl: `${import.meta.env.VITE_IMAGE_BASE_URL ?? ''}/products/a.jpg`,
+    })
+    expect(products[1]).toMatchObject({
+      id: 2,
+      name: 'Out of Stock',
+      count: 0,
+      price: 2000,
+      description: '説明B',
+      imageUrl: null,
     })
   })
 
