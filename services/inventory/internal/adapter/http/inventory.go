@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"io"
 	"net/http"
 	"strconv"
 
@@ -12,11 +13,12 @@ import (
 )
 
 type InventoryHandler struct {
-	uc usecase.InventoryUsecase
+	uc    usecase.InventoryUsecase
+	imgUc usecase.ImageUsecase
 }
 
-func NewInventoryHandler(uc usecase.InventoryUsecase) *InventoryHandler {
-	return &InventoryHandler{uc: uc}
+func NewInventoryHandler(uc usecase.InventoryUsecase, imgUc usecase.ImageUsecase) *InventoryHandler {
+	return &InventoryHandler{uc: uc, imgUc: imgUc}
 }
 
 func (h *InventoryHandler) RegisterRoutes(r *gin.Engine) {
@@ -31,6 +33,8 @@ func (h *InventoryHandler) RegisterRoutes(r *gin.Engine) {
 	admin.PUT("/:id", h.UpdateProduct)
 	admin.DELETE("/:id", h.DeleteProduct)
 	admin.POST("/:id/adjust", h.AdjustStock)
+
+	r.POST("/admin/images", h.UploadImage)
 }
 
 func (h *InventoryHandler) ListInventories(c *gin.Context) {
@@ -246,6 +250,43 @@ func (h *InventoryHandler) AdjustStock(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+func (h *InventoryHandler) UploadImage(c *gin.Context) {
+	fileHeader, err := c.FormFile("image")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse("image file is required"))
+		return
+	}
+	if fileHeader.Size > domain.MaxImageSize {
+		c.JSON(http.StatusUnprocessableEntity, errorResponse(domain.ErrImageTooLarge.Error()))
+		return
+	}
+
+	file, err := fileHeader.Open()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse("failed to read image file"))
+		return
+	}
+	defer file.Close()
+
+	data, err := io.ReadAll(file)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse("failed to read image file"))
+		return
+	}
+
+	imageKey, err := h.imgUc.UploadImage(c.Request.Context(), data)
+	if err != nil {
+		if errors.Is(err, domain.ErrUnsupportedImageType) || errors.Is(err, domain.ErrImageTooLarge) {
+			c.JSON(http.StatusUnprocessableEntity, errorResponse(err.Error()))
+			return
+		}
+		c.JSON(http.StatusInternalServerError, errorResponse("internal server error"))
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"image_key": imageKey})
 }
 
 func parseID(c *gin.Context) (int, error) {
