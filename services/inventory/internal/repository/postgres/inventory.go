@@ -60,6 +60,44 @@ func (r *inventoryRepository) Save(ctx context.Context, inv *domain.Inventory) e
 	return err
 }
 
+func (r *inventoryRepository) Create(ctx context.Context, inv *domain.Inventory) error {
+	row := r.pool.QueryRow(ctx,
+		`INSERT INTO inventories (name, count, price, description, image_key)
+		 VALUES ($1, $2, $3, $4, $5)
+		 RETURNING id, created_at, updated_at`,
+		inv.Name, inv.Count, inv.Price, inv.Description, inv.ImageKey,
+	)
+	return row.Scan(&inv.ID, &inv.CreatedAt, &inv.UpdatedAt)
+}
+
+func (r *inventoryRepository) Update(ctx context.Context, inv *domain.Inventory) error {
+	row := r.pool.QueryRow(ctx,
+		`UPDATE inventories
+		 SET name = $1, price = $2, description = $3, image_key = $4, updated_at = now()
+		 WHERE id = $5
+		 RETURNING count, created_at, updated_at`,
+		inv.Name, inv.Price, inv.Description, inv.ImageKey, inv.ID,
+	)
+	if err := row.Scan(&inv.Count, &inv.CreatedAt, &inv.UpdatedAt); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.ErrNotFound
+		}
+		return err
+	}
+	return nil
+}
+
+func (r *inventoryRepository) Delete(ctx context.Context, id int) error {
+	tag, err := r.pool.Exec(ctx, `DELETE FROM inventories WHERE id = $1`, id)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return domain.ErrNotFound
+	}
+	return nil
+}
+
 func (r *inventoryRepository) RunInTx(ctx context.Context, fn func(domain.InventoryRepository) error) error {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
@@ -111,6 +149,44 @@ func (r *txInventoryRepository) Save(ctx context.Context, inv *domain.Inventory)
 		inv.Count, inv.ID,
 	)
 	return err
+}
+
+func (r *txInventoryRepository) Create(ctx context.Context, inv *domain.Inventory) error {
+	row := r.tx.QueryRow(ctx,
+		`INSERT INTO inventories (name, count, price, description, image_key)
+		 VALUES ($1, $2, $3, $4, $5)
+		 RETURNING id, created_at, updated_at`,
+		inv.Name, inv.Count, inv.Price, inv.Description, inv.ImageKey,
+	)
+	return row.Scan(&inv.ID, &inv.CreatedAt, &inv.UpdatedAt)
+}
+
+func (r *txInventoryRepository) Update(ctx context.Context, inv *domain.Inventory) error {
+	row := r.tx.QueryRow(ctx,
+		`UPDATE inventories
+		 SET name = $1, price = $2, description = $3, image_key = $4, updated_at = now()
+		 WHERE id = $5
+		 RETURNING count, created_at, updated_at`,
+		inv.Name, inv.Price, inv.Description, inv.ImageKey, inv.ID,
+	)
+	if err := row.Scan(&inv.Count, &inv.CreatedAt, &inv.UpdatedAt); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.ErrNotFound
+		}
+		return err
+	}
+	return nil
+}
+
+func (r *txInventoryRepository) Delete(ctx context.Context, id int) error {
+	tag, err := r.tx.Exec(ctx, `DELETE FROM inventories WHERE id = $1`, id)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return domain.ErrNotFound
+	}
+	return nil
 }
 
 func (r *txInventoryRepository) RunInTx(_ context.Context, fn func(domain.InventoryRepository) error) error {
