@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { Link } from 'react-router'
 import { Table, Th, Td } from '@/shared/ui/Table'
+import { imageUrl } from '@/shared/imageUrl'
 import { StockAdjuster } from './StockAdjuster'
 import type { Inventory } from '../api'
 
@@ -12,6 +14,22 @@ const ThumbnailPlaceholder = () => (
     </svg>
   </div>
 )
+
+const Thumbnail = ({ inventory }: { inventory: Inventory }) => {
+  const [failed, setFailed] = useState(false)
+  const src = imageUrl(inventory.imageKey)
+
+  if (!src || failed) return <ThumbnailPlaceholder />
+
+  return (
+    <img
+      src={src}
+      alt={inventory.name}
+      className="w-10 h-10 rounded object-cover"
+      onError={() => setFailed(true)}
+    />
+  )
+}
 
 export const InventoryTable = ({ inventories }: { inventories: Inventory[] }) => (
   <Table>
@@ -28,7 +46,7 @@ export const InventoryTable = ({ inventories }: { inventories: Inventory[] }) =>
       {inventories.map((inventory) => (
         <tr key={inventory.id}>
           <Td>
-            <ThumbnailPlaceholder />
+            <Thumbnail inventory={inventory} />
           </Td>
           <Td>{inventory.name}</Td>
           <Td className="tabular-nums">¥{inventory.price.toLocaleString()}</Td>
