@@ -25,11 +25,14 @@ export const ProductForm = ({ mode, initialValues, onSubmit, isSubmitting, error
   const [description, setDescription] = useState(initialValues?.description ?? '')
   const [count, setCount] = useState(initialValues?.count ?? 0)
   const [imageKey, setImageKey] = useState(initialValues?.imageKey ?? null)
+  const [isImageUploading, setIsImageUploading] = useState(false)
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
     onSubmit({ name, price, description, count, imageKey })
   }
+
+  const isSaveDisabled = isSubmitting || isImageUploading
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-md">
@@ -56,7 +59,12 @@ export const ProductForm = ({ mode, initialValues, onSubmit, isSubmitting, error
         onChange={(e) => setDescription(e.target.value)}
         rows={4}
       />
-      <ImageUploader imageKey={imageKey} onChange={setImageKey} disabled={isSubmitting} />
+      <ImageUploader
+        imageKey={imageKey}
+        onChange={setImageKey}
+        disabled={isSubmitting}
+        onUploadingChange={setIsImageUploading}
+      />
       {mode === 'create' && (
         <Input
           id="product-count"
@@ -69,7 +77,7 @@ export const ProductForm = ({ mode, initialValues, onSubmit, isSubmitting, error
         />
       )}
       {errorMessage && <p className="text-danger text-sm">{errorMessage}</p>}
-      <Button type="submit" disabled={isSubmitting}>
+      <Button type="submit" disabled={isSaveDisabled}>
         {isSubmitting ? '保存中...' : '保存する'}
       </Button>
     </form>

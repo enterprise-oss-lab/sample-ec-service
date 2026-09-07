@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent } from 'react'
+import { useEffect, useState, type ChangeEvent } from 'react'
 import { imageUrl } from '@/shared/imageUrl'
 import { useUploadImage } from '../hooks/useUploadImage'
 
@@ -6,9 +6,10 @@ interface ImageUploaderProps {
   imageKey: string | null
   onChange: (imageKey: string | null) => void
   disabled?: boolean
+  onUploadingChange?: (isUploading: boolean) => void
 }
 
-export const ImageUploader = ({ imageKey, onChange, disabled }: ImageUploaderProps) => {
+export const ImageUploader = ({ imageKey, onChange, disabled, onUploadingChange }: ImageUploaderProps) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string>()
 
@@ -22,6 +23,10 @@ export const ImageUploader = ({ imageKey, onChange, disabled }: ImageUploaderPro
       setPreviewUrl(null)
     },
   })
+
+  useEffect(() => {
+    onUploadingChange?.(isPending)
+  }, [isPending, onUploadingChange])
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
