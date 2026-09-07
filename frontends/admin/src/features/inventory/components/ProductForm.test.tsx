@@ -1,8 +1,14 @@
-import { describe, it, expect, vi } from 'vitest'
-import { screen } from '@testing-library/react'
+import { describe, it, expect, vi, beforeAll, afterAll, afterEach } from 'vitest'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { http, HttpResponse, delay } from 'msw'
+import { server } from '@/mocks/server'
 import { renderWithProviders } from '@/test-utils'
 import { ProductForm } from './ProductForm'
+
+beforeAll(() => server.listen())
+afterEach(() => server.resetHandlers())
+afterAll(() => server.close())
 
 describe('ProductForm', () => {
   it('create モードでは初期在庫数フィールドが表示される', () => {
@@ -58,5 +64,24 @@ describe('ProductForm', () => {
   it('errorMessage が表示される', () => {
     renderWithProviders(<ProductForm mode="create" onSubmit={vi.fn()} errorMessage="失敗しました" />)
     expect(screen.getByText('失敗しました')).toBeInTheDocument()
+  })
+
+  it('画像アップロード中は保存ボタンが disabled になり、完了後に再度有効になる', async () => {
+    server.use(
+      http.post(/\/admin\/images$/, async () => {
+        await delay(50)
+        return HttpResponse.json({ image_key: 'products/mock-uuid.jpg' }, { status: 201 })
+      }),
+    )
+    const onSubmit = vi.fn()
+    const user = userEvent.setup()
+    renderWithProviders(<ProductForm mode="create" onSubmit={onSubmit} />)
+
+    const file = new File(['dummy'], 'photo.jpg', { type: 'image/jpeg' })
+    await user.upload(screen.getByLabelText('画像'), file)
+
+    await waitFor(() => expect(screen.getByRole('button', { name: '保存する' })).toBeDisabled())
+
+    await waitFor(() => expect(screen.getByRole('button', { name: '保存する' })).toBeEnabled())
   })
 })
