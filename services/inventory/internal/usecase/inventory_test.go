@@ -78,11 +78,11 @@ func TestGetInventory(t *testing.T) {
 
 func TestReserve(t *testing.T) {
 	tests := []struct {
-		name          string
-		stub          stubInventoryRepository
-		quantity      int
-		wantErr       string
-		wantSaveCount int
+		name           string
+		stub           stubInventoryRepository
+		quantity       int
+		wantErr        string
+		wantSaveCount  int
 		wantSaveCalled bool
 	}{
 		{
@@ -200,6 +200,66 @@ func TestRestock(t *testing.T) {
 			}
 			if !tt.stub.saveCalled {
 				t.Error("Save was not called")
+			}
+			if tt.stub.savedInv.Count != tt.wantSaveCount {
+				t.Errorf("saved Count = %d, want %d", tt.stub.savedInv.Count, tt.wantSaveCount)
+			}
+		})
+	}
+}
+
+func TestAdjustStock(t *testing.T) {
+	tests := []struct {
+		name          string
+		stub          stubInventoryRepository
+		delta         int
+		wantErr       string
+		wantSaveCount int
+	}{
+		{
+			name:          "正の delta は補充になる",
+			stub:          stubInventoryRepository{inventory: &domain.Inventory{ID: 1, Count: 10}},
+			delta:         5,
+			wantSaveCount: 15,
+		},
+		{
+			name:          "負の delta は引当になる",
+			stub:          stubInventoryRepository{inventory: &domain.Inventory{ID: 1, Count: 10}},
+			delta:         -5,
+			wantSaveCount: 5,
+		},
+		{
+			name:    "負の delta で在庫を割り込む場合はエラー",
+			stub:    stubInventoryRepository{inventory: &domain.Inventory{ID: 1, Count: 5}},
+			delta:   -10,
+			wantErr: "insufficient stock",
+		},
+		{
+			name:    "delta が 0 はエラー",
+			stub:    stubInventoryRepository{inventory: &domain.Inventory{ID: 1, Count: 10}},
+			delta:   0,
+			wantErr: "quantity must be greater than 0",
+		},
+		{
+			name:    "FindByID でエラー",
+			stub:    stubInventoryRepository{findErr: domain.ErrNotFound},
+			delta:   5,
+			wantErr: "inventory not found",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			uc := NewInventoryUsecase(&tt.stub)
+			err := uc.AdjustStock(context.Background(), 1, tt.delta)
+			if tt.wantErr != "" {
+				if err == nil || err.Error() != tt.wantErr {
+					t.Errorf("got err %v, want %q", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
 			}
 			if tt.stub.savedInv.Count != tt.wantSaveCount {
 				t.Errorf("saved Count = %d, want %d", tt.stub.savedInv.Count, tt.wantSaveCount)

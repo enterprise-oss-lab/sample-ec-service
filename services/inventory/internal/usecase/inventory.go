@@ -16,6 +16,9 @@ type InventoryUsecase interface {
 	Reserve(ctx context.Context, id int, quantity int) error
 	Restock(ctx context.Context, id int, quantity int) error
 	GetInventory(ctx context.Context, id int) (*domain.Inventory, error)
+	// AdjustStock は在庫数を delta 分変化させる（負の delta も許可）。
+	// delta >= 0 は Restock、delta < 0 は Reserve に読み替えて既存の在庫保護に乗せる。
+	AdjustStock(ctx context.Context, id int, delta int) error
 }
 
 type inventoryUsecase struct {
@@ -74,6 +77,25 @@ func (u *inventoryUsecase) Restock(ctx context.Context, id int, quantity int) er
 		}
 		if err := inv.Restock(quantity); err != nil {
 			return err
+		}
+		return txRepo.Save(ctx, inv)
+	})
+}
+
+func (u *inventoryUsecase) AdjustStock(ctx context.Context, id int, delta int) error {
+	return u.repo.RunInTx(ctx, func(txRepo domain.InventoryRepository) error {
+		inv, err := txRepo.FindByID(ctx, id)
+		if err != nil {
+			return err
+		}
+		if delta >= 0 {
+			if err := inv.Restock(delta); err != nil {
+				return err
+			}
+		} else {
+			if err := inv.Reserve(-delta); err != nil {
+				return err
+			}
 		}
 		return txRepo.Save(ctx, inv)
 	})

@@ -9,8 +9,9 @@ import (
 )
 
 type stubProductRepository struct {
-	product *domain.Product
-	findErr error
+	product  *domain.Product
+	findErr  error
+	writeErr error
 }
 
 func (s *stubProductRepository) FindAll(_ context.Context) ([]*domain.Product, error) {
@@ -23,6 +24,16 @@ func (s *stubProductRepository) FindAll(_ context.Context) ([]*domain.Product, e
 func (s *stubProductRepository) FindByID(_ context.Context, _ int) (*domain.Product, error) {
 	return s.product, s.findErr
 }
+
+func (s *stubProductRepository) Create(_ context.Context, product *domain.Product, _ int) error {
+	if s.writeErr == nil {
+		product.ID = 1
+	}
+	return s.writeErr
+}
+
+func (s *stubProductRepository) Update(_ context.Context, _ *domain.Product) error { return s.writeErr }
+func (s *stubProductRepository) Delete(_ context.Context, _ int) error             { return s.writeErr }
 
 func TestGetProduct(t *testing.T) {
 	tests := []struct {

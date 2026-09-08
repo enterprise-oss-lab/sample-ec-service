@@ -8,14 +8,14 @@ const products = [
     name: 'Product A',
     description: 'Product A の説明文',
     price: 1200,
-    image_url: 'https://example.test/a.png',
+    image_key: 'products/product-a.jpg',
   },
   {
     id: 2,
     name: 'Out of Stock',
     description: '在庫切れ商品の説明文',
     price: 3400,
-    image_url: 'https://example.test/b.png',
+    image_key: null,
   },
 ]
 
@@ -30,9 +30,9 @@ export const handlers = [
   http.get(/\/products$/, () => HttpResponse.json(products)),
   http.get(/\/inventories\/(\d+)$/, ({ request }) => {
     const id = Number(new URL(request.url).pathname.split('/').pop())
-    const stocks: Record<number, { id: number; name: string; count: number }> = {
-      1: { id: 1, name: 'Product A', count: 5 },
-      2: { id: 2, name: 'Out of Stock', count: 0 },
+    const stocks: Record<number, { id: number; count: number }> = {
+      1: { id: 1, count: 5 },
+      2: { id: 2, count: 0 },
     }
     return stocks[id]
       ? HttpResponse.json(stocks[id])
@@ -40,8 +40,8 @@ export const handlers = [
   }),
   http.get(/\/inventories$/, () =>
     HttpResponse.json([
-      { id: 1, name: 'Product A', count: 5 },
-      { id: 2, name: 'Out of Stock', count: 0 },
+      { id: 1, count: 5 },
+      { id: 2, count: 0 },
     ]),
   ),
   http.get(/\/orders$/, () =>

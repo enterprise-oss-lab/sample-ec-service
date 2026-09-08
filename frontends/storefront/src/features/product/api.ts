@@ -1,3 +1,5 @@
+import { imageUrl } from '@/shared/imageUrl'
+
 // カタログ (products) と在庫 (inventories) は別リソースとして扱う。
 // 更新頻度が違うためで、カタログは日〜月単位、在庫は毎秒変わる。
 // 混ぜて1本の API にすると、可変な在庫数のせいでカタログ側もキャッシュできなくなる。
@@ -13,7 +15,7 @@ type ProductResponse = {
   name: string
   description: string
   price: number
-  image_url: string
+  image_key: string | null
 }
 
 /** カタログ属性。在庫数は持たない (Stock 側の関心)。 */
@@ -22,7 +24,7 @@ export type Product = {
   name: string
   description: string
   price: number
-  imageUrl: string
+  imageUrl: string | null
 }
 
 /** 在庫。GET /inventories のレスポンスそのまま。商品名は持たない (Product 側の関心)。 */
@@ -39,7 +41,7 @@ function toProduct(res: ProductResponse): Product {
     name: res.name,
     description: res.description,
     price: res.price,
-    imageUrl: res.image_url,
+    imageUrl: imageUrl(res.image_key),
   }
 }
 

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PR コンフリクト調査 — inventory / catalog split</title>
+  <style>
+    :root{--bg:#f4f1ea;--paper:#fffdf8;--ink:#20231f;--muted:#667067;--line:#d9d8ce;--green:#245c48;--green2:#dcebe3;--amber:#9a5b12;--amber2:#fff0d3;--red:#9b3631;--red2:#fbe5e2;--blue:#315e82;--blue2:#e4eef7;--shadow:0 18px 45px rgba(42,48,40,.08)}
+    *{box-sizing:border-box} body{margin:0;background:linear-gradient(140deg,#ece8de 0,#f8f6f0 45%,#e8eee9 100%);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif;line-height:1.7} main{max-width:1120px;margin:auto;padding:48px 24px 80px}.hero,.card{background:rgba(255,253,248,.94);border:1px solid rgba(120,120,105,.18);border-radius:20px;box-shadow:var(--shadow)}.hero{padding:38px 42px;position:relative;overflow:hidden}.hero:after{content:"";position:absolute;width:240px;height:240px;border-radius:50%;right:-70px;top:-100px;background:var(--green2);opacity:.65}h1{font-family:Georgia,"Yu Mincho",serif;font-size:clamp(28px,5vw,48px);line-height:1.15;margin:10px 0 14px;max-width:780px}.eyebrow{color:var(--green);font-weight:800;letter-spacing:.14em;font-size:12px;text-transform:uppercase}.lead{font-size:18px;max-width:800px;margin:0;color:#465048}.meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}.pill,.badge{display:inline-block;border-radius:999px;padding:5px 11px;font-size:12px;font-weight:750}.pill{background:#eceee8;color:#4c554d}.critical{background:var(--red2);color:var(--red)}.warn{background:var(--amber2);color:var(--amber)}.ok{background:var(--green2);color:var(--green)}.info{background:var(--blue2);color:var(--blue)}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:18px 0}.metric{padding:22px}.metric strong{display:block;font-family:Georgia,serif;font-size:34px;line-height:1.1}.metric span{color:var(--muted);font-size:13px}.card{padding:28px 30px;margin-top:18px}h2{font-size:23px;margin:0 0 16px}h3{font-size:17px;margin:20px 0 8px}p{margin:8px 0}.decision{border-left:5px solid var(--amber)}.callout{border-radius:12px;padding:15px 17px;background:var(--amber2);color:#624114}.options{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}.option{border:1px solid var(--line);border-radius:14px;padding:18px}.option.recommended{border:2px solid var(--green);background:#f4faf6}.option h3{margin:0 0 6px}.option ul{margin-bottom:0}table{width:100%;border-collapse:collapse;font-size:14px}th{text-align:left;color:var(--muted);font-size:12px;letter-spacing:.04em;border-bottom:2px solid var(--line);padding:10px 9px}td{border-bottom:1px solid var(--line);padding:14px 9px;vertical-align:top}code{font-family:"SFMono-Regular",Consolas,monospace;font-size:.9em;background:#eeeee8;border-radius:5px;padding:2px 5px;overflow-wrap:anywhere}.file{font-weight:700}.why{color:var(--muted)}ol.checks{padding-left:24px}.checks li{padding:7px 0}.checks li::marker{color:var(--green);font-weight:800}.flow{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin:16px 0}.box{padding:18px;border-radius:13px;text-align:center}.left{background:var(--blue2)}.right{background:var(--red2)}.arrow{font-size:24px;color:var(--muted)}footer{color:var(--muted);font-size:12px;margin-top:20px;text-align:center}@media(max-width:760px){main{padding:22px 12px 50px}.hero,.card{padding:23px 20px}.grid,.options{grid-template-columns:1fr}.flow{grid-template-columns:1fr}.arrow{transform:rotate(90deg);text-align:center}table,thead,tbody,tr,th,td{display:block}thead{display:none}tr{padding:12px 0;border-bottom:1px solid var(--line)}td{border:0;padding:4px 0}td:before{content:attr(data-label);display:block;font-size:11px;color:var(--muted);font-weight:700}}
+  </style>
+</head>
+<body><main>
+  <section class="hero">
+    <div class="eyebrow">Merge readiness report</div>
+    <h1>inventory / catalog split PR<br>コンフリクト調査</h1>
+    <p class="lead">このPRは単なる行単位の競合ではなく、商品データの置き場所を巡る<strong>設計競合</strong>です。マーカーだけ消すと、管理画面またはstorefrontのどちらかが壊れます。</p>
+    <div class="meta"><span class="pill">PR: feat/inventory-catalog-split @ a37c13a</span><span class="pill">target: origin/main @ b057e47</span><span class="pill">共通祖先: 43a20d1</span><span class="pill">調査日: 2026-09-08 JST</span></div>
+  </section>
+
+  <div class="grid">
+    <section class="card metric"><strong>6</strong><span>Gitが検出する直接競合ファイル</span></section>
+    <section class="card metric"><strong>9</strong><span>両ブランチが変更した同一ファイル</span></section>
+    <section class="card metric"><strong>High</strong><span>意味的競合のリスク</span></section>
+  </div>
+
+  <section class="card decision">
+    <span class="badge warn">最初に判断が必要</span>
+    <h2>商品モデルを分離するか、inventoryへ同居させるか</h2>
+    <div class="flow"><div class="box left"><strong>このPR</strong><br><code>products</code>: name / price / description / image_url<br><code>inventories</code>: id / count</div><div class="arrow">↔</div><div class="box right"><strong>main</strong><br><code>inventories</code> 1表に<br>商品属性・在庫・画像キー・日時を同居</div></div>
+    <p class="callout">両方をそのまま残すと同じ商品属性が二重管理になります。先に正本（source of truth）を決め、その判断で6件を一括解消する必要があります。</p>
+    <div class="options">
+      <div class="option recommended"><span class="badge ok">PRの目的に沿う案</span><h3>A. splitを維持する</h3><p><code>products</code> をカタログの正本、<code>inventories</code> を在庫数の正本にします。</p><ul><li>storefrontの分離取得・キャッシュ設計を活かせる</li><li>mainの管理CRUDを2 repositoryへ再実装する必要あり</li><li>画像は <code>image_key</code> か <code>image_url</code> に統一する</li></ul></div>
+      <div class="option"><span class="badge info">変更量を抑える案</span><h3>B. mainの同居モデルを維持する</h3><p>PRの <code>products</code> 表/APIを取り下げ、<code>/inventories</code> を商品一覧として使います。</p><ul><li>既存のadmin CRUD・画像アップロードをそのまま活かせる</li><li>このPRのカタログ／在庫分離と別TTLの目的は失われる</li><li>詳細ページだけmainモデルへ移植する</li></ul></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>直接競合 — 直す場所</h2>
+    <table><thead><tr><th>ファイル</th><th>競合内容</th><th>A: split維持時の解消</th><th>B: main維持時の解消</th></tr></thead><tbody>
+      <tr><td data-label="ファイル" class="file"><code>frontends/storefront/src/features/product/api.ts</code></td><td data-label="競合内容">PRは <code>/products</code> と <code>/inventories</code> を分離。mainは在庫レスポンスから商品・画像を生成。</td><td data-label="A">PR側の型と2 APIを基準にし、mainの <code>imageUrl(image_key)</code> をProduct表現へ移植。重複した <code>description</code> 宣言も除去。</td><td data-label="B">main側の単一APIを採用し、PRのStock hooksと別TTLを削除。</td></tr>
+      <tr><td data-label="ファイル" class="file"><code>frontends/storefront/src/features/product/api.test.ts</code></td><td data-label="競合内容">期待するURL・レスポンス形が別物。</td><td data-label="A"><code>/products</code> と <code>/inventories</code> の独立テストを残し、画像仕様を決定後にfixtureを統一。</td><td data-label="B">mainのinventoryレスポンス基準に戻し、詳細取得テストのみ追加。</td></tr>
+      <tr><td data-label="ファイル" class="file"><code>frontends/storefront/src/features/product/components/ProductList.tsx</code></td><td data-label="競合内容">PRは別Stock取得＋詳細リンク、mainは商品画像＋description表示。</td><td data-label="A">両方を統合。商品属性はProduct、在庫表示はStock、画像とカード全体は詳細リンクへ。</td><td data-label="B">main表示を基準に詳細リンクだけ移植。</td></tr>
+      <tr><td data-label="ファイル" class="file"><code>services/inventory/internal/domain/inventory.go</code></td><td data-label="競合内容">PRは <code>ID, Count</code> のみ。mainは商品属性・画像・日時を同じ構造体に保持。</td><td data-label="A">PR側を採用。管理系が参照する商品属性は <code>domain.Product</code> へ移す。</td><td data-label="B">main側を採用し、<code>domain.Product</code> を削除または詳細表示専用DTO化。</td></tr>
+      <tr><td data-label="ファイル" class="file"><code>services/inventory/internal/repository/postgres/inventory.go</code></td><td data-label="競合内容">SQL列、Scan、Save、およびmain追加のCreate/Update/Deleteが別スキーマを前提。</td><td data-label="A">inventory repositoryは <code>id,count</code> のみに限定。商品CRUDをProductRepositoryへ追加し、作成・削除はトランザクションで両表を同期。</td><td data-label="B">main側SQLを採用し、products repositoryを廃止。</td></tr>
+      <tr><td data-label="ファイル" class="file"><code>services/inventory/main.go</code></td><td data-label="競合内容">PRのProductUsecase登録とmainのS3 ImageUsecase/CORS/handler署名が同じ初期化箇所を変更。</td><td data-label="A">両方を残す。Product UC＋Image UCを初期化し、Inventory handlerの新署名、Product routes、複数CORS originをすべて登録。</td><td data-label="B">main初期化を基準にし、Product routesを登録しない。</td></tr>
+    </tbody></table>
+  </section>
+
+  <section class="card">
+    <h2>競合マーカーが出ない連鎖修正</h2>
+    <table><thead><tr><th>領域</th><th>問題</th><th>必要な判断・修正</th></tr></thead><tbody>
+      <tr><td data-label="領域" class="file">DB migrations</td><td data-label="問題"><code>003_create_products.sql</code> と <code>003_add_product_fields.sql</code> が同じ番号で、後者はPR後のinventoriesに存在しない <code>name</code> を暗黙に前提とします。</td><td data-label="必要な修正">番号を通し直すだけでは不十分。Aならmainの003をproducts向け移行へ書き換え、既存データ移送とrollback方針を用意。BならPRの003/004を除外。</td></tr>
+      <tr><td data-label="領域" class="file">admin API / usecase</td><td data-label="問題"><code>/admin/inventories</code> のCreate/Update/Deleteが商品属性もInventoryにある前提です。</td><td data-label="必要な修正">Aなら作成＝products＋inventories、編集＝products、在庫調整＝inventories、削除＝両表、という責務へ分割。失敗時の原子性も必要。</td></tr>
+      <tr><td data-label="領域" class="file">admin frontend</td><td data-label="問題">型とAPI名はInventoryですが、実際には商品編集も担います。</td><td data-label="必要な修正">Aなら公開URLを互換維持するか、<code>/admin/products</code> へ変更してadminのAPI client/tests/e2eを更新。</td></tr>
+      <tr><td data-label="領域" class="file">画像モデル</td><td data-label="問題">PRは外部URL文字列 <code>image_url</code>、mainはRustFSのobject key <code>image_key</code>＋URL変換です。</td><td data-label="必要な修正">RustFSを残すならProductは <code>image_key</code> を正本とし、HTTP DTOでURLを組み立てるのが自然。二列併存は避ける。</td></tr>
+      <tr><td data-label="領域" class="file">削除・参照整合性</td><td data-label="問題">別表は1:1想定ですが外部キーがなく、片方だけ残り得ます。</td><td data-label="必要な修正">AならFK（どちらを親にするか）とON DELETE方針を明示し、作成・削除をDB transaction化。</td></tr>
+      <tr><td data-label="領域" class="file">seed data</td><td data-label="問題">PRとmainで価格・説明が異なります（例: 商品1は 2,980円 vs 2,000円）。</td><td data-label="必要な修正">期待する商品マスタを選び、storefront/admin/e2e fixturesを同じ値へ統一。</td></tr>
+    </tbody></table>
+  </section>
+
+  <section class="card">
+    <h2>推奨する解消順序（Aを選ぶ場合）</h2>
+    <ol class="checks"><li>最終スキーマを決定：productsに <code>name, price, description, image_key, created_at, updated_at</code>、inventoriesに <code>product_id/id, count</code>。</li><li>migrationsを一本化し、既存inventoriesの商品列からproductsへデータ移送できる形にする。</li><li>domain/repository/usecaseをカタログと在庫へ分離し、adminの作成・削除をtransaction化する。</li><li>HTTP契約を決定：公開 <code>/products</code>、在庫 <code>/inventories</code>、管理 <code>/admin/products</code>（互換性が必要なら旧URLを一時alias）。</li><li>storefrontの競合3件を統合し、画像・詳細リンク・別Stock取得を共存させる。</li><li>adminのunit/e2e、storefrontのunit/e2e、Go test、migration from scratchを実行する。</li></ol>
+  </section>
+
+  <section class="card">
+    <h2>マージ可否の判定</h2>
+    <p><span class="badge critical">現状のままはマージ不可</span></p>
+    <p>6ファイルの競合解消だけでは足りません。上の設計A/Bを決め、DB・admin CRUD・画像契約まで同じモデルへ揃えた時点でマージ可能です。PRタイトルとコミット意図を尊重するなら、<strong>A（split維持）を選び、mainの管理機能を新境界へ移植</strong>するのが一貫しています。</p>
+    <p class="why">検証方法: 共通祖先からの両差分を比較し、PR HEADへ保存済みorigin/mainを一時clone上でマージ。元の作業ツリーにはmerge操作をしていません。Goツールチェーンが環境にないため、コンパイル／Go testは未実行です。</p>
+  </section>
+  <footer>Generated from repository state available locally on 2026-09-08 (Asia/Tokyo).</footer>
+</main></body></html>

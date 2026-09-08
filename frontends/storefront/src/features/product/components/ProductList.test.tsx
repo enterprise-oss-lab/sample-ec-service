@@ -37,6 +37,39 @@ describe('ProductList', () => {
     expect(screen.getByText('Out of Stock')).toBeInTheDocument()
   })
 
+  it('image_key がある商品は img タグで画像を表示する', async () => {
+    await renderAndWait()
+
+    const items = screen.getAllByRole('listitem')
+    const productAItem = items.find((item) => item.textContent?.includes('Product A'))!
+    const img = within(productAItem).getByRole('img', { name: 'Product A' }) as HTMLImageElement
+
+    expect(img.src).toContain('products/product-a.jpg')
+  })
+
+  it('image_key が無い商品はプレースホルダー画像にフォールバックする', async () => {
+    await renderAndWait()
+
+    const items = screen.getAllByRole('listitem')
+    const outOfStockItem = items.find((item) => item.textContent?.includes('Out of Stock'))!
+
+    expect(within(outOfStockItem).queryByRole('img')).not.toBeInTheDocument()
+  })
+
+  it('画像の読み込みに失敗した場合プレースホルダーにフォールバックする', async () => {
+    await renderAndWait()
+
+    const items = screen.getAllByRole('listitem')
+    const productAItem = items.find((item) => item.textContent?.includes('Product A'))!
+    const img = within(productAItem).getByRole('img', { name: 'Product A' })
+
+    img.dispatchEvent(new Event('error'))
+
+    await waitFor(() =>
+      expect(within(productAItem).queryByRole('img')).not.toBeInTheDocument(),
+    )
+  })
+
   it('エラー時に エラーメッセージを表示する', async () => {
     server.use(
       http.get(/\/inventories$/, () => new HttpResponse(null, { status: 500 })),

@@ -16,7 +16,7 @@ const productResponse = {
   name: 'Product A',
   description: 'Product A の説明文',
   price: 1200,
-  image_url: 'https://example.test/a.png',
+  image_key: 'products/a.png',
 }
 
 describe('fetchProducts', () => {
@@ -26,7 +26,7 @@ describe('fetchProducts', () => {
     expect(fetchMock).toHaveBeenCalledWith('/products')
   })
 
-  it('image_url を imageUrl にマップして返す', async () => {
+  it('image_key を imageUrl にマップして返す', async () => {
     stubFetch([productResponse])
 
     const products = await fetchProducts()
@@ -37,7 +37,7 @@ describe('fetchProducts', () => {
       name: 'Product A',
       description: 'Product A の説明文',
       price: 1200,
-      imageUrl: 'https://example.test/a.png',
+      imageUrl: `${import.meta.env.VITE_IMAGE_BASE_URL ?? ''}/products/a.png`,
     })
   })
 
@@ -58,7 +58,7 @@ describe('fetchProduct', () => {
     const fetchMock = stubFetch(productResponse)
     const product = await fetchProduct(1)
     expect(fetchMock).toHaveBeenCalledWith('/products/1')
-    expect(product?.imageUrl).toBe('https://example.test/a.png')
+    expect(product?.imageUrl).toBe(`${import.meta.env.VITE_IMAGE_BASE_URL ?? ''}/products/a.png`)
   })
 
   it('404 は null を返す (throw しない)', async () => {

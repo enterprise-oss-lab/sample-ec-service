@@ -22,6 +22,7 @@ import (
 	"enterprise-oss-lab/sample-ec-service/inventry/config"
 	httphandler "enterprise-oss-lab/sample-ec-service/inventry/internal/adapter/http"
 	kafkaadapter "enterprise-oss-lab/sample-ec-service/inventry/internal/adapter/kafka"
+	"enterprise-oss-lab/sample-ec-service/inventry/internal/adapter/storage"
 	"enterprise-oss-lab/sample-ec-service/inventry/internal/repository/postgres"
 	"enterprise-oss-lab/sample-ec-service/inventry/internal/telemetry"
 	"enterprise-oss-lab/sample-ec-service/inventry/internal/usecase"
@@ -89,6 +90,15 @@ func main() {
 	// (db/migrations/003_create_products.sql のコメント参照)。
 	productUC := usecase.NewProductUsecase(postgres.NewProductRepository(pool))
 
+	imageStorage := storage.NewS3ImageStorage(storage.Config{
+		Endpoint:        cfg.RustFS.Endpoint,
+		Region:          cfg.RustFS.Region,
+		Bucket:          cfg.RustFS.Bucket,
+		AccessKeyID:     cfg.RustFS.AccessKeyID,
+		SecretAccessKey: cfg.RustFS.SecretAccessKey,
+	})
+	imgUc := usecase.NewImageUsecase(imageStorage)
+
 	producer, err := kafkaadapter.NewProducer(cfg.Kafka.Brokers, cfg.Kafka.ResultTopic)
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to create kafka producer", "error", err)
@@ -115,12 +125,12 @@ func main() {
 		}
 	}()
 
-	h := httphandler.NewInventoryHandler(uc)
+	h := httphandler.NewInventoryHandler(uc, productUC, imgUc)
 	r := gin.Default()
 	// OTel HTTP server instrumentation must run before CORS so every request is traced.
 	r.Use(otelgin.Middleware(serviceName))
 	r.Use(cors.New(cors.Config{
-		AllowOrigins: []string{cfg.CORSOrigin},
+		AllowOrigins: cfg.CORSOrigins,
 		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders: []string{"Content-Type", "Authorization"},
 	}))

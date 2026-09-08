@@ -12,6 +12,9 @@ import (
 type ProductUsecase interface {
 	ListProducts(ctx context.Context) ([]*domain.Product, error)
 	GetProduct(ctx context.Context, id int) (*domain.Product, error)
+	CreateProduct(ctx context.Context, product *domain.Product, initialCount int) error
+	UpdateProduct(ctx context.Context, product *domain.Product) error
+	DeleteProduct(ctx context.Context, id int) error
 }
 
 type productUsecase struct {
@@ -28,4 +31,16 @@ func (u *productUsecase) ListProducts(ctx context.Context) ([]*domain.Product, e
 
 func (u *productUsecase) GetProduct(ctx context.Context, id int) (*domain.Product, error) {
 	return u.repo.FindByID(ctx, id)
+}
+
+func (u *productUsecase) CreateProduct(ctx context.Context, product *domain.Product, initialCount int) error {
+	return u.repo.Create(ctx, product, initialCount)
+}
+
+func (u *productUsecase) UpdateProduct(ctx context.Context, product *domain.Product) error {
+	return u.repo.Update(ctx, product)
+}
+
+func (u *productUsecase) DeleteProduct(ctx context.Context, id int) error {
+	return u.repo.Delete(ctx, id)
 }
