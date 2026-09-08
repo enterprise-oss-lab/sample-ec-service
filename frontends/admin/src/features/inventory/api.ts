@@ -9,6 +9,9 @@ type InventoryResponse = {
   updated_at: string
 }
 
+type ProductResponse = Omit<InventoryResponse, 'count'>
+type StockResponse = Pick<InventoryResponse, 'id' | 'count'>
+
 export type Inventory = {
   id: number
   name: string
@@ -35,18 +38,32 @@ function toInventory(item: InventoryResponse): Inventory {
   }
 }
 
+function combine(product: ProductResponse, stock: StockResponse): Inventory {
+  return toInventory({ ...product, count: stock.count })
+}
+
 export async function fetchInventories(): Promise<Inventory[]> {
-  const res = await fetch(`${INVENTORY_API_BASE_URL}/inventories`)
-  if (!res.ok) throw new Error('Failed to fetch inventories')
-  const items: InventoryResponse[] = await res.json()
-  return items.map(toInventory)
+  const [productsRes, stocksRes] = await Promise.all([
+    fetch(`${INVENTORY_API_BASE_URL}/products`),
+    fetch(`${INVENTORY_API_BASE_URL}/inventories`),
+  ])
+  if (!productsRes.ok || !stocksRes.ok) throw new Error('Failed to fetch inventories')
+  const products: ProductResponse[] = await productsRes.json()
+  const stocks: StockResponse[] = await stocksRes.json()
+  const stockByID = new Map(stocks.map((stock) => [stock.id, stock]))
+  return products.flatMap((product) => {
+    const stock = stockByID.get(product.id)
+    return stock ? [combine(product, stock)] : []
+  })
 }
 
 export async function fetchInventory(id: number): Promise<Inventory> {
-  const res = await fetch(`${INVENTORY_API_BASE_URL}/inventories/${id}`)
-  if (!res.ok) throw new Error('Failed to fetch inventory')
-  const item: InventoryResponse = await res.json()
-  return toInventory(item)
+  const [productRes, stockRes] = await Promise.all([
+    fetch(`${INVENTORY_API_BASE_URL}/products/${id}`),
+    fetch(`${INVENTORY_API_BASE_URL}/inventories/${id}`),
+  ])
+  if (!productRes.ok || !stockRes.ok) throw new Error('Failed to fetch inventory')
+  return combine(await productRes.json(), await stockRes.json())
 }
 
 export async function adjustStock(id: number, delta: number): Promise<void> {

@@ -13,7 +13,22 @@ test.describe('商品作成', () => {
     ]
 
     await page.route(`${INVENTORY_API}/inventories`, (route) => {
-      route.fulfill({ json: inventories })
+      route.fulfill({
+        json: inventories.map(({ id, count }) => ({ id, count })),
+      })
+    })
+    await page.route(`${INVENTORY_API}/products`, (route) => {
+      route.fulfill({
+        json: inventories.map(({ id, name, price, description, image_key, created_at, updated_at }) => ({
+          id,
+          name,
+          price,
+          description,
+          image_key,
+          created_at,
+          updated_at,
+        })),
+      })
     })
     await page.route(`${INVENTORY_API}/admin/inventories`, (route) => {
       if (route.request().method() === 'POST') {

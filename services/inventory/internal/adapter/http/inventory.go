@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -13,12 +14,13 @@ import (
 )
 
 type InventoryHandler struct {
-	uc    usecase.InventoryUsecase
-	imgUc usecase.ImageUsecase
+	uc        usecase.InventoryUsecase
+	productUC usecase.ProductUsecase
+	imgUc     usecase.ImageUsecase
 }
 
-func NewInventoryHandler(uc usecase.InventoryUsecase, imgUc usecase.ImageUsecase) *InventoryHandler {
-	return &InventoryHandler{uc: uc, imgUc: imgUc}
+func NewInventoryHandler(uc usecase.InventoryUsecase, productUC usecase.ProductUsecase, imgUc usecase.ImageUsecase) *InventoryHandler {
+	return &InventoryHandler{uc: uc, productUC: productUC, imgUc: imgUc}
 }
 
 func (h *InventoryHandler) RegisterRoutes(r *gin.Engine) {
@@ -150,6 +152,22 @@ type adjustRequest struct {
 	Delta int `json:"delta"`
 }
 
+type adminInventoryResponse struct {
+	ID          int       `json:"id"`
+	Name        string    `json:"name"`
+	Count       int       `json:"count"`
+	Price       int       `json:"price"`
+	Description string    `json:"description"`
+	ImageKey    *string   `json:"image_key"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+func adminResponse(product *domain.Product, count int) adminInventoryResponse {
+	return adminInventoryResponse{ID: product.ID, Name: product.Name, Count: count, Price: product.Price,
+		Description: product.Description, ImageKey: product.ImageKey, CreatedAt: product.CreatedAt, UpdatedAt: product.UpdatedAt}
+}
+
 func (h *InventoryHandler) CreateProduct(c *gin.Context) {
 	var req createProductRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -157,19 +175,18 @@ func (h *InventoryHandler) CreateProduct(c *gin.Context) {
 		return
 	}
 
-	inv := &domain.Inventory{
+	product := &domain.Product{
 		Name:        req.Name,
 		Price:       req.Price,
 		Description: req.Description,
 		ImageKey:    req.ImageKey,
-		Count:       req.Count,
 	}
-	if err := h.uc.CreateProduct(c.Request.Context(), inv); err != nil {
+	if err := h.productUC.CreateProduct(c.Request.Context(), product, req.Count); err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse("internal server error"))
 		return
 	}
 
-	c.JSON(http.StatusCreated, inv)
+	c.JSON(http.StatusCreated, adminResponse(product, req.Count))
 }
 
 func (h *InventoryHandler) UpdateProduct(c *gin.Context) {
@@ -185,15 +202,15 @@ func (h *InventoryHandler) UpdateProduct(c *gin.Context) {
 		return
 	}
 
-	inv := &domain.Inventory{
+	product := &domain.Product{
 		ID:          id,
 		Name:        req.Name,
 		Price:       req.Price,
 		Description: req.Description,
 		ImageKey:    req.ImageKey,
 	}
-	if err := h.uc.UpdateProduct(c.Request.Context(), inv); err != nil {
-		if errors.Is(err, domain.ErrNotFound) {
+	if err := h.productUC.UpdateProduct(c.Request.Context(), product); err != nil {
+		if errors.Is(err, domain.ErrProductNotFound) {
 			c.JSON(http.StatusNotFound, errorResponse(err.Error()))
 			return
 		}
@@ -201,7 +218,12 @@ func (h *InventoryHandler) UpdateProduct(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, inv)
+	inv, err := h.uc.GetInventory(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, errorResponse("internal server error"))
+		return
+	}
+	c.JSON(http.StatusOK, adminResponse(product, inv.Count))
 }
 
 func (h *InventoryHandler) DeleteProduct(c *gin.Context) {
@@ -211,8 +233,8 @@ func (h *InventoryHandler) DeleteProduct(c *gin.Context) {
 		return
 	}
 
-	if err := h.uc.DeleteProduct(c.Request.Context(), id); err != nil {
-		if errors.Is(err, domain.ErrNotFound) {
+	if err := h.productUC.DeleteProduct(c.Request.Context(), id); err != nil {
+		if errors.Is(err, domain.ErrProductNotFound) {
 			c.JSON(http.StatusNotFound, errorResponse(err.Error()))
 			return
 		}

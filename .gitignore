@@ -37,4 +37,7 @@ htmlcov/
 *.swp
 *.swo
 
+# pnpm dependency cache
+.pnpm-store/
+
 .DS_Store

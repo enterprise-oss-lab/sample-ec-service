@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
-import { fetchProducts } from '../api'
+import { CATALOG_STALE_TIME, fetchProducts } from '../api'
 
 export function useProducts() {
   return useQuery({
     queryKey: ['products'],
     queryFn: fetchProducts,
+    staleTime: CATALOG_STALE_TIME,
   })
 }

@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router'
 import { FlashProvider, Flash } from '@/shared/Flash'
 
-function createWrapper() {
+function createWrapper(initialEntries: string[] = ['/']) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -16,18 +16,21 @@ function createWrapper() {
       <QueryClientProvider client={queryClient}>
         <FlashProvider>
           <Flash />
-          <MemoryRouter>{children}</MemoryRouter>
+          <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
         </FlashProvider>
       </QueryClientProvider>
     )
   }
 }
 
+// initialEntries は URL パラメータを取るページ (例 /products/:id) のテスト用。
+// Router は入れ子にできないため、ここで初期 URL を渡す必要がある。
 export function renderWithProviders(
   ui: React.ReactElement,
-  options?: Omit<RenderOptions, 'wrapper'>,
+  options?: Omit<RenderOptions, 'wrapper'> & { initialEntries?: string[] },
 ) {
-  return render(ui, { wrapper: createWrapper(), ...options })
+  const { initialEntries, ...renderOptions } = options ?? {}
+  return render(ui, { wrapper: createWrapper(initialEntries), ...renderOptions })
 }
 
 export function renderHookWithProviders<T>(

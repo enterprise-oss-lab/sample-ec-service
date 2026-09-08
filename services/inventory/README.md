@@ -26,13 +26,13 @@ docker compose exec inventory-postgres \
 ```
 
 ```
- id |        name        | count
-----+--------------------+-------
-  1 | Tシャツ（M）       |   100
-  2 | Tシャツ（L）       |    80
-  3 | デニムパンツ       |    50
-  4 | スニーカー（26cm） |    30
-  5 | キャップ           |   200
+ id | count
+----+-------
+  1 |   100
+  2 |    80
+  3 |    50
+  4 |    30
+  5 |   200
 (5 rows)
 ```
 
@@ -47,8 +47,10 @@ curl http://localhost:8080/inventories/1
 ```
 
 ```json
-{"id":1,"name":"Tシャツ（M）","count":100}
+{"id":1,"count":100}
 ```
+
+商品名などのカタログ属性は含まない (下の「カタログ参照」参照)。
 
 ### HTTP 経由で在庫引き当て
 
@@ -57,6 +59,31 @@ curl -X POST http://localhost:8080/inventories/1/reserve \
   -H "Content-Type: application/json" \
   -d '{"quantity": 5}'
 # → 204 No Content
+```
+
+### カタログ参照
+
+商品のカタログ属性 (名前・説明・価格・画像) は在庫数と**更新頻度が違う**ため、`inventories` とは
+別テーブル `products` に分けてある。在庫数は毎秒変わるがカタログは日〜月単位でしか変わらないので、
+この境界がそのままキャッシュの境界になる。`inventories` は名前を持たない
+(`id`/`count` のみ) ので、商品名が要る場合は `products` を参照すること。
+
+```bash
+curl http://localhost:8080/products/1
+```
+
+```json
+{"id":1,"name":"Tシャツ（M）","description":"6.2oz ヘビーウェイト天竺。洗濯を繰り返しても首元が伸びにくい。","price":2980,"image_url":"https://placehold.co/400x300?text=T-Shirt+M"}
+```
+
+一覧は `GET /products`。エラー時のレスポンスは在庫 API と同じ形式。
+
+```bash
+curl http://localhost:8080/products/9999
+# {"error":"product not found"}  → 404
+
+curl http://localhost:8080/products/abc
+# {"error":"invalid id"}         → 400
 ```
 
 ---
@@ -113,7 +140,7 @@ curl -X POST http://localhost:8080/inventories/1/reserve \
 
 ```bash
 curl http://localhost:8080/inventories/1
-# {"id":1,"name":"Tシャツ（M）","count":100}
+# {"id":1,"count":100}
 ```
 
 ### ステップ 2: result topic を購読（別ターミナルで実行）
@@ -150,7 +177,7 @@ echo '{"correlation_id":"ord-001","inventory_id":1,"quantity":5}' | \
 
 ```bash
 curl http://localhost:8080/inventories/1
-# {"id":1,"name":"Tシャツ（M）","count":95}  ← 100 - 5 = 95
+# {"id":1,"count":95}  ← 100 - 5 = 95
 ```
 
 ---

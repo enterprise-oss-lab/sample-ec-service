@@ -19,6 +19,7 @@ import { Header } from './shared/Header/index.tsx'
 import { Flash, FlashProvider } from './shared/Flash/index.tsx'
 import './index.css'
 import { ProductPage } from './pages/Product/index.tsx'
+import { ProductDetailPage } from './pages/ProductDetail/index.tsx'
 
 const queryClient = new QueryClient()
 
@@ -32,6 +33,7 @@ createRoot(document.getElementById('root')!).render(
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/products" element={<ProductPage />} />
+            <Route path="/products/:id" element={<ProductDetailPage />} />
             <Route path="/orders" element={<OrderPage />} />
             <Route path="/account" element={<AccountPage />} />
             <Route path="/cart" element={<CartPage />} />

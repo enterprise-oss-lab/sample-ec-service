@@ -1,24 +1,47 @@
 import { http, HttpResponse } from 'msw'
 
+// カタログ (products) と在庫 (inventories) は別エンドポイント。
+// 同じ id で突き合わせる前提のモックデータにしてある。
+const products = [
+  {
+    id: 1,
+    name: 'Product A',
+    description: 'Product A の説明文',
+    price: 1200,
+    image_key: 'products/product-a.jpg',
+  },
+  {
+    id: 2,
+    name: 'Out of Stock',
+    description: '在庫切れ商品の説明文',
+    price: 3400,
+    image_key: null,
+  },
+]
+
 export const handlers = [
+  http.get(/\/products\/(\d+)$/, ({ request }) => {
+    const id = Number(new URL(request.url).pathname.split('/').pop())
+    const product = products.find((p) => p.id === id)
+    return product
+      ? HttpResponse.json(product)
+      : HttpResponse.json({ error: 'product not found' }, { status: 404 })
+  }),
+  http.get(/\/products$/, () => HttpResponse.json(products)),
+  http.get(/\/inventories\/(\d+)$/, ({ request }) => {
+    const id = Number(new URL(request.url).pathname.split('/').pop())
+    const stocks: Record<number, { id: number; count: number }> = {
+      1: { id: 1, count: 5 },
+      2: { id: 2, count: 0 },
+    }
+    return stocks[id]
+      ? HttpResponse.json(stocks[id])
+      : HttpResponse.json({ error: 'inventory not found' }, { status: 404 })
+  }),
   http.get(/\/inventories$/, () =>
     HttpResponse.json([
-      {
-        id: 1,
-        name: 'Product A',
-        count: 5,
-        price: 1000,
-        description: 'Product A の説明',
-        image_key: 'products/product-a.jpg',
-      },
-      {
-        id: 2,
-        name: 'Out of Stock',
-        count: 0,
-        price: 2000,
-        description: 'Out of Stock の説明',
-        image_key: null,
-      },
+      { id: 1, count: 5 },
+      { id: 2, count: 0 },
     ]),
   ),
   http.get(/\/orders$/, () =>

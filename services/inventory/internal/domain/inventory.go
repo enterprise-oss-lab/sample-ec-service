@@ -1,9 +1,6 @@
 package domain
 
-import (
-	"errors"
-	"time"
-)
+import "errors"
 
 var (
 	ErrInsufficientStock = errors.New("insufficient stock")
@@ -11,14 +8,8 @@ var (
 )
 
 type Inventory struct {
-	ID          int       `json:"id"`
-	Name        string    `json:"name"`
-	Count       int       `json:"count"`
-	Price       int       `json:"price"`
-	Description string    `json:"description"`
-	ImageKey    *string   `json:"image_key"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID    int `json:"id"`
+	Count int `json:"count"`
 }
 
 // Reserve は quantity 分の在庫を引当する

@@ -9,18 +9,11 @@ import (
 )
 
 type stubInventoryRepository struct {
-	inventory    *domain.Inventory
-	findErr      error
-	saveErr      error
-	saveCalled   bool
-	savedInv     *domain.Inventory
-	createErr    error
-	createdInv   *domain.Inventory
-	updateErr    error
-	updatedInv   *domain.Inventory
-	deleteErr    error
-	deletedID    int
-	deleteCalled bool
+	inventory  *domain.Inventory
+	findErr    error
+	saveErr    error
+	saveCalled bool
+	savedInv   *domain.Inventory
 }
 
 func (s *stubInventoryRepository) FindAll(_ context.Context) ([]*domain.Inventory, error) {
@@ -40,29 +33,6 @@ func (s *stubInventoryRepository) Save(_ context.Context, inv *domain.Inventory)
 	return s.saveErr
 }
 
-func (s *stubInventoryRepository) Create(_ context.Context, inv *domain.Inventory) error {
-	if s.createErr != nil {
-		return s.createErr
-	}
-	inv.ID = 1
-	s.createdInv = inv
-	return nil
-}
-
-func (s *stubInventoryRepository) Update(_ context.Context, inv *domain.Inventory) error {
-	if s.updateErr != nil {
-		return s.updateErr
-	}
-	s.updatedInv = inv
-	return nil
-}
-
-func (s *stubInventoryRepository) Delete(_ context.Context, id int) error {
-	s.deleteCalled = true
-	s.deletedID = id
-	return s.deleteErr
-}
-
 func (s *stubInventoryRepository) RunInTx(_ context.Context, fn func(domain.InventoryRepository) error) error {
 	return fn(s)
 }
@@ -76,7 +46,7 @@ func TestGetInventory(t *testing.T) {
 	}{
 		{
 			name:      "正常に在庫を取得できる",
-			stub:      stubInventoryRepository{inventory: &domain.Inventory{ID: 1, Name: "item", Count: 10}},
+			stub:      stubInventoryRepository{inventory: &domain.Inventory{ID: 1, Count: 10}},
 			wantCount: 10,
 		},
 		{
@@ -235,77 +205,6 @@ func TestRestock(t *testing.T) {
 				t.Errorf("saved Count = %d, want %d", tt.stub.savedInv.Count, tt.wantSaveCount)
 			}
 		})
-	}
-}
-
-func TestCreateProduct(t *testing.T) {
-	stub := stubInventoryRepository{}
-	uc := NewInventoryUsecase(&stub)
-
-	inv := &domain.Inventory{Name: "新商品", Price: 1000, Description: "説明", Count: 10}
-	if err := uc.CreateProduct(context.Background(), inv); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if stub.createdInv != inv {
-		t.Error("Create was not called with the given inventory")
-	}
-	if inv.ID != 1 {
-		t.Errorf("got ID %d, want 1 (set by repository)", inv.ID)
-	}
-}
-
-func TestCreateProduct_RepositoryError(t *testing.T) {
-	stub := stubInventoryRepository{createErr: errors.New("db error")}
-	uc := NewInventoryUsecase(&stub)
-
-	err := uc.CreateProduct(context.Background(), &domain.Inventory{Name: "新商品"})
-	if err == nil || err.Error() != "db error" {
-		t.Errorf("got err %v, want %q", err, "db error")
-	}
-}
-
-func TestUpdateProduct(t *testing.T) {
-	stub := stubInventoryRepository{}
-	uc := NewInventoryUsecase(&stub)
-
-	inv := &domain.Inventory{ID: 1, Name: "更新後", Price: 2000}
-	if err := uc.UpdateProduct(context.Background(), inv); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if stub.updatedInv != inv {
-		t.Error("Update was not called with the given inventory")
-	}
-}
-
-func TestUpdateProduct_NotFound(t *testing.T) {
-	stub := stubInventoryRepository{updateErr: domain.ErrNotFound}
-	uc := NewInventoryUsecase(&stub)
-
-	err := uc.UpdateProduct(context.Background(), &domain.Inventory{ID: 999})
-	if !errors.Is(err, domain.ErrNotFound) {
-		t.Errorf("got err %v, want %v", err, domain.ErrNotFound)
-	}
-}
-
-func TestDeleteProduct(t *testing.T) {
-	stub := stubInventoryRepository{}
-	uc := NewInventoryUsecase(&stub)
-
-	if err := uc.DeleteProduct(context.Background(), 1); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if !stub.deleteCalled || stub.deletedID != 1 {
-		t.Error("Delete was not called with the given id")
-	}
-}
-
-func TestDeleteProduct_NotFound(t *testing.T) {
-	stub := stubInventoryRepository{deleteErr: domain.ErrNotFound}
-	uc := NewInventoryUsecase(&stub)
-
-	err := uc.DeleteProduct(context.Background(), 999)
-	if !errors.Is(err, domain.ErrNotFound) {
-		t.Errorf("got err %v, want %v", err, domain.ErrNotFound)
 	}
 }
 
