@@ -16,6 +16,10 @@ type stubImageStorage struct {
 	putKey         string
 	putContentType string
 	putData        []byte
+
+	deleteErr    error
+	deleteCalled bool
+	deleteKey    string
 }
 
 func (s *stubImageStorage) Put(_ context.Context, key string, contentType string, data []byte) error {
@@ -24,6 +28,12 @@ func (s *stubImageStorage) Put(_ context.Context, key string, contentType string
 	s.putContentType = contentType
 	s.putData = data
 	return s.putErr
+}
+
+func (s *stubImageStorage) Delete(_ context.Context, key string) error {
+	s.deleteCalled = true
+	s.deleteKey = key
+	return s.deleteErr
 }
 
 func jpegBytes() []byte {

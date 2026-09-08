@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"strings"
+	"time"
 )
 
 type KafkaConfig struct {
@@ -21,11 +22,12 @@ type RustFSConfig struct {
 }
 
 type Config struct {
-	DatabaseURL string
-	Port        string
-	CORSOrigins []string
-	Kafka       KafkaConfig
-	RustFS      RustFSConfig
+	DatabaseURL          string
+	Port                 string
+	CORSOrigins          []string
+	Kafka                KafkaConfig
+	RustFS               RustFSConfig
+	MediaAssetPendingTTL time.Duration
 }
 
 func Load() Config {
@@ -89,6 +91,11 @@ func Load() Config {
 		rustfsSecretAccessKey = "rustfsadmin" // pragma: allowlist secret
 	}
 
+	mediaAssetPendingTTL, err := time.ParseDuration(os.Getenv("MEDIA_ASSET_PENDING_TTL"))
+	if err != nil {
+		mediaAssetPendingTTL = 30 * time.Second
+	}
+
 	return Config{
 		DatabaseURL: dsn,
 		Port:        port,
@@ -106,6 +113,7 @@ func Load() Config {
 			AccessKeyID:     rustfsAccessKeyID,
 			SecretAccessKey: rustfsSecretAccessKey,
 		},
+		MediaAssetPendingTTL: mediaAssetPendingTTL,
 	}
 }
 
