@@ -51,12 +51,12 @@ test.describe('商品一覧ページ', () => {
       }
     })
     await page.goto('/products')
-    await page.waitForSelector('text=Product A')
+    await page.getByRole('link', { name: 'Product A' }).waitFor()
   })
 
   test('商品一覧ページに商品が表示される', async ({ page }) => {
-    await expect(page.getByText('Product A')).toBeVisible()
-    await expect(page.getByText('Out of Stock')).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Product A' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Out of Stock' })).toBeVisible()
   })
 
   test('数量の増減ボタンが動作する', async ({ page }) => {
