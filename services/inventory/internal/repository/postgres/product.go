@@ -58,11 +58,31 @@ func (r *productRepository) Create(ctx context.Context, product *domain.Product,
 	if _, err := tx.Exec(ctx, `INSERT INTO inventories (id, count) VALUES ($1, $2)`, product.ID, initialCount); err != nil {
 		return err
 	}
+	if product.ImageKey != nil {
+		if err := (&txMediaAssetRepository{tx: tx}).Confirm(ctx, *product.ImageKey, product.ID); err != nil {
+			return err
+		}
+	}
 	return tx.Commit(ctx)
 }
 
 func (r *productRepository) Update(ctx context.Context, product *domain.Product) error {
-	row := r.pool.QueryRow(ctx, `UPDATE products SET name=$1, description=$2, price=$3, image_key=$4, updated_at=now()
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	var currentImageKey *string
+	row := tx.QueryRow(ctx, `SELECT image_key FROM products WHERE id=$1 FOR UPDATE`, product.ID)
+	if err := row.Scan(&currentImageKey); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.ErrProductNotFound
+		}
+		return err
+	}
+
+	row = tx.QueryRow(ctx, `UPDATE products SET name=$1, description=$2, price=$3, image_key=$4, updated_at=now()
 		WHERE id=$5 RETURNING created_at, updated_at`, product.Name, product.Description, product.Price, product.ImageKey, product.ID)
 	if err := row.Scan(&product.CreatedAt, &product.UpdatedAt); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -70,7 +90,14 @@ func (r *productRepository) Update(ctx context.Context, product *domain.Product)
 		}
 		return err
 	}
-	return nil
+
+	if product.ImageKey != nil && (currentImageKey == nil || *currentImageKey != *product.ImageKey) {
+		if err := (&txMediaAssetRepository{tx: tx}).Confirm(ctx, *product.ImageKey, product.ID); err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit(ctx)
 }
 
 func (r *productRepository) Delete(ctx context.Context, id int) error {
