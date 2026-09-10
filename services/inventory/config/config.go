@@ -20,12 +20,19 @@ type RustFSConfig struct {
 	SecretAccessKey string
 }
 
+type RedisConfig struct {
+	Addr     string
+	Password string
+	DB       int
+}
+
 type Config struct {
 	DatabaseURL string
 	Port        string
 	CORSOrigins []string
 	Kafka       KafkaConfig
 	RustFS      RustFSConfig
+	Redis       RedisConfig
 }
 
 func Load() Config {
@@ -89,6 +96,11 @@ func Load() Config {
 		rustfsSecretAccessKey = "rustfsadmin" // pragma: allowlist secret
 	}
 
+	redisAddr := os.Getenv("REDIS_ADDR")
+	if redisAddr == "" {
+		redisAddr = "localhost:6379"
+	}
+
 	return Config{
 		DatabaseURL: dsn,
 		Port:        port,
@@ -105,6 +117,11 @@ func Load() Config {
 			Bucket:          rustfsBucket,
 			AccessKeyID:     rustfsAccessKeyID,
 			SecretAccessKey: rustfsSecretAccessKey,
+		},
+		Redis: RedisConfig{
+			Addr:     redisAddr,
+			Password: os.Getenv("REDIS_PASSWORD"),
+			DB:       0,
 		},
 	}
 }
