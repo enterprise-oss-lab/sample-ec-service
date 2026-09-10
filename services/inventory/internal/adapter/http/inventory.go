@@ -182,6 +182,10 @@ func (h *InventoryHandler) CreateProduct(c *gin.Context) {
 		ImageKey:    req.ImageKey,
 	}
 	if err := h.productUC.CreateProduct(c.Request.Context(), product, req.Count); err != nil {
+		if errors.Is(err, domain.ErrMediaAssetNotConfirmable) {
+			c.JSON(http.StatusUnprocessableEntity, errorResponse(err.Error()))
+			return
+		}
 		c.JSON(http.StatusInternalServerError, errorResponse("internal server error"))
 		return
 	}
@@ -212,6 +216,10 @@ func (h *InventoryHandler) UpdateProduct(c *gin.Context) {
 	if err := h.productUC.UpdateProduct(c.Request.Context(), product); err != nil {
 		if errors.Is(err, domain.ErrProductNotFound) {
 			c.JSON(http.StatusNotFound, errorResponse(err.Error()))
+			return
+		}
+		if errors.Is(err, domain.ErrMediaAssetNotConfirmable) {
+			c.JSON(http.StatusUnprocessableEntity, errorResponse(err.Error()))
 			return
 		}
 		c.JSON(http.StatusInternalServerError, errorResponse("internal server error"))

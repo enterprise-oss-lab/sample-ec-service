@@ -150,6 +150,7 @@ func main() {
 	}))
 	h.RegisterRoutes(r)
 	httphandler.NewProductHandler(productUC).RegisterRoutes(r)
+	httphandler.NewMediaAssetHandler(mediaAssetUC).RegisterRoutes(r)
 
 	addr := ":" + cfg.Port
 	srv := &http.Server{Addr: addr, Handler: r}
