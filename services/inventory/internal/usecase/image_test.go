@@ -36,6 +36,22 @@ func (s *stubImageStorage) Delete(_ context.Context, key string) error {
 	return s.deleteErr
 }
 
+type stubMediaAssetUsecase struct {
+	registerErr        error
+	registerCalled     bool
+	registerStorageKey string
+}
+
+func (s *stubMediaAssetUsecase) RegisterPending(_ context.Context, storageKey string) error {
+	s.registerCalled = true
+	s.registerStorageKey = storageKey
+	return s.registerErr
+}
+
+func (s *stubMediaAssetUsecase) CleanupExpired(_ context.Context) (int, int, error) {
+	return 0, 0, nil
+}
+
 func jpegBytes() []byte {
 	return append([]byte{0xFF, 0xD8, 0xFF}, []byte("fake jpeg body")...)
 }
@@ -70,7 +86,8 @@ func TestUploadImage(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			stub := &stubImageStorage{}
-			uc := NewImageUsecase(stub)
+			mediaAssetUC := &stubMediaAssetUsecase{}
+			uc := NewImageUsecase(stub, mediaAssetUC)
 
 			key, err := uc.UploadImage(context.Background(), tt.data)
 			if tt.wantErr != nil {
@@ -79,6 +96,9 @@ func TestUploadImage(t *testing.T) {
 				}
 				if stub.putCalled {
 					t.Error("Put should not have been called")
+				}
+				if mediaAssetUC.registerCalled {
+					t.Error("RegisterPending should not have been called")
 				}
 				return
 			}
@@ -97,16 +117,37 @@ func TestUploadImage(t *testing.T) {
 			if stub.putContentType != tt.wantContentType {
 				t.Errorf("got content type %q, want %q", stub.putContentType, tt.wantContentType)
 			}
+			if !mediaAssetUC.registerCalled {
+				t.Fatal("RegisterPending was not called")
+			}
+			if mediaAssetUC.registerStorageKey != key {
+				t.Errorf("RegisterPending called with key %q, want %q", mediaAssetUC.registerStorageKey, key)
+			}
 		})
 	}
 }
 
 func TestUploadImage_StorageError(t *testing.T) {
 	stub := &stubImageStorage{putErr: errors.New("s3 error")}
-	uc := NewImageUsecase(stub)
+	mediaAssetUC := &stubMediaAssetUsecase{}
+	uc := NewImageUsecase(stub, mediaAssetUC)
 
 	_, err := uc.UploadImage(context.Background(), jpegBytes())
 	if err == nil || err.Error() != "s3 error" {
 		t.Errorf("got err %v, want %q", err, "s3 error")
+	}
+	if mediaAssetUC.registerCalled {
+		t.Error("RegisterPending should not have been called when Put fails")
+	}
+}
+
+func TestUploadImage_RegisterPendingError(t *testing.T) {
+	stub := &stubImageStorage{}
+	mediaAssetUC := &stubMediaAssetUsecase{registerErr: errors.New("db error")}
+	uc := NewImageUsecase(stub, mediaAssetUC)
+
+	_, err := uc.UploadImage(context.Background(), jpegBytes())
+	if err == nil || err.Error() != "db error" {
+		t.Errorf("got err %v, want %q", err, "db error")
 	}
 }
