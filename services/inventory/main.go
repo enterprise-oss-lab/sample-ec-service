@@ -93,13 +93,15 @@ func main() {
 	})
 	inventoryCache := redisadapter.NewInventoryCache(redisClient, time.Second)
 	defer inventoryCache.Close() //nolint:errcheck
+	productCache := redisadapter.NewProductCache(redisClient, time.Minute)
 
 	repo := cacheadapter.NewInventoryRepository(postgres.NewInventoryRepository(pool), inventoryCache)
 	uc := usecase.NewInventoryUsecase(repo)
 
 	// カタログは在庫と更新頻度が違うため別テーブル・別ハンドラに分けている
 	// (db/migrations/003_create_products.sql のコメント参照)。
-	productUC := usecase.NewProductUsecase(postgres.NewProductRepository(pool))
+	productRepo := cacheadapter.NewProductRepository(postgres.NewProductRepository(pool), productCache, inventoryCache)
+	productUC := usecase.NewProductUsecase(productRepo)
 
 	imageStorage := storage.NewS3ImageStorage(storage.Config{
 		Endpoint:        cfg.RustFS.Endpoint,
