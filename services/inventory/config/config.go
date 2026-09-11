@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"strings"
+	"time"
 )
 
 type KafkaConfig struct {
@@ -27,12 +28,13 @@ type RedisConfig struct {
 }
 
 type Config struct {
-	DatabaseURL string
-	Port        string
-	CORSOrigins []string
-	Kafka       KafkaConfig
-	RustFS      RustFSConfig
-	Redis       RedisConfig
+	DatabaseURL          string
+	Port                 string
+	CORSOrigins          []string
+	Kafka                KafkaConfig
+	RustFS               RustFSConfig
+	Redis                RedisConfig
+	MediaAssetPendingTTL time.Duration
 }
 
 func Load() Config {
@@ -101,6 +103,11 @@ func Load() Config {
 		redisAddr = "localhost:6379"
 	}
 
+	mediaAssetPendingTTL, err := time.ParseDuration(os.Getenv("MEDIA_ASSET_PENDING_TTL"))
+	if err != nil {
+		mediaAssetPendingTTL = 30 * time.Second
+	}
+
 	return Config{
 		DatabaseURL: dsn,
 		Port:        port,
@@ -123,6 +130,7 @@ func Load() Config {
 			Password: os.Getenv("REDIS_PASSWORD"),
 			DB:       0,
 		},
+		MediaAssetPendingTTL: mediaAssetPendingTTL,
 	}
 }
 

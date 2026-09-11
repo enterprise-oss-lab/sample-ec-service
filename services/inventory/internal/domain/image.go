@@ -17,4 +17,6 @@ const MaxImageSize = 5 * 1024 * 1024
 type ImageStorage interface {
 	// Put は key の位置に data を contentType 付きで保存する。
 	Put(ctx context.Context, key string, contentType string, data []byte) error
+	// Delete は key の位置の画像を削除する。
+	Delete(ctx context.Context, key string) error
 }
