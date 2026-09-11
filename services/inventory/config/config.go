@@ -21,12 +21,19 @@ type RustFSConfig struct {
 	SecretAccessKey string
 }
 
+type RedisConfig struct {
+	Addr     string
+	Password string
+	DB       int
+}
+
 type Config struct {
 	DatabaseURL          string
 	Port                 string
 	CORSOrigins          []string
 	Kafka                KafkaConfig
 	RustFS               RustFSConfig
+	Redis                RedisConfig
 	MediaAssetPendingTTL time.Duration
 }
 
@@ -91,6 +98,11 @@ func Load() Config {
 		rustfsSecretAccessKey = "rustfsadmin" // pragma: allowlist secret
 	}
 
+	redisAddr := os.Getenv("REDIS_ADDR")
+	if redisAddr == "" {
+		redisAddr = "localhost:6379"
+	}
+
 	mediaAssetPendingTTL, err := time.ParseDuration(os.Getenv("MEDIA_ASSET_PENDING_TTL"))
 	if err != nil {
 		mediaAssetPendingTTL = 30 * time.Second
@@ -112,6 +124,11 @@ func Load() Config {
 			Bucket:          rustfsBucket,
 			AccessKeyID:     rustfsAccessKeyID,
 			SecretAccessKey: rustfsSecretAccessKey,
+		},
+		Redis: RedisConfig{
+			Addr:     redisAddr,
+			Password: os.Getenv("REDIS_PASSWORD"),
+			DB:       0,
 		},
 		MediaAssetPendingTTL: mediaAssetPendingTTL,
 	}

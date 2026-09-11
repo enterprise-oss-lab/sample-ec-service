@@ -15,6 +15,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	redisclient "github.com/redis/go-redis/v9"
 	"go.opentelemetry.io/contrib/bridges/otelslog"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"go.opentelemetry.io/contrib/instrumentation/runtime"
@@ -23,7 +24,9 @@ import (
 	httphandler "enterprise-oss-lab/sample-ec-service/inventry/internal/adapter/http"
 	kafkaadapter "enterprise-oss-lab/sample-ec-service/inventry/internal/adapter/kafka"
 	"enterprise-oss-lab/sample-ec-service/inventry/internal/adapter/storage"
+	cacheadapter "enterprise-oss-lab/sample-ec-service/inventry/internal/repository/cache"
 	"enterprise-oss-lab/sample-ec-service/inventry/internal/repository/postgres"
+	redisadapter "enterprise-oss-lab/sample-ec-service/inventry/internal/repository/redis"
 	"enterprise-oss-lab/sample-ec-service/inventry/internal/telemetry"
 	"enterprise-oss-lab/sample-ec-service/inventry/internal/usecase"
 )
@@ -83,12 +86,22 @@ func main() {
 		os.Exit(1)
 	}
 
-	repo := postgres.NewInventoryRepository(pool)
+	redisClient := redisclient.NewClient(&redisclient.Options{
+		Addr:     cfg.Redis.Addr,
+		Password: cfg.Redis.Password,
+		DB:       cfg.Redis.DB,
+	})
+	inventoryCache := redisadapter.NewInventoryCache(redisClient, time.Second)
+	defer inventoryCache.Close() //nolint:errcheck
+	productCache := redisadapter.NewProductCache(redisClient, time.Minute)
+
+	repo := cacheadapter.NewInventoryRepository(postgres.NewInventoryRepository(pool), inventoryCache)
 	uc := usecase.NewInventoryUsecase(repo)
 
 	// カタログは在庫と更新頻度が違うため別テーブル・別ハンドラに分けている
 	// (db/migrations/003_create_products.sql のコメント参照)。
-	productUC := usecase.NewProductUsecase(postgres.NewProductRepository(pool))
+	productRepo := cacheadapter.NewProductRepository(postgres.NewProductRepository(pool), productCache, inventoryCache)
+	productUC := usecase.NewProductUsecase(productRepo)
 
 	imageStorage := storage.NewS3ImageStorage(storage.Config{
 		Endpoint:        cfg.RustFS.Endpoint,
