@@ -17,11 +17,12 @@ type ImageUsecase interface {
 }
 
 type imageUsecase struct {
-	storage domain.ImageStorage
+	storage      domain.ImageStorage
+	mediaAssetUC MediaAssetUsecase
 }
 
-func NewImageUsecase(storage domain.ImageStorage) ImageUsecase {
-	return &imageUsecase{storage: storage}
+func NewImageUsecase(storage domain.ImageStorage, mediaAssetUC MediaAssetUsecase) ImageUsecase {
+	return &imageUsecase{storage: storage, mediaAssetUC: mediaAssetUC}
 }
 
 func (u *imageUsecase) UploadImage(ctx context.Context, data []byte) (string, error) {
@@ -36,6 +37,10 @@ func (u *imageUsecase) UploadImage(ctx context.Context, data []byte) (string, er
 
 	key := "products/" + uuid.NewString() + "." + ext
 	if err := u.storage.Put(ctx, key, contentType, data); err != nil {
+		return "", err
+	}
+
+	if err := u.mediaAssetUC.RegisterPending(ctx, key); err != nil {
 		return "", err
 	}
 

@@ -110,7 +110,8 @@ func main() {
 		AccessKeyID:     cfg.RustFS.AccessKeyID,
 		SecretAccessKey: cfg.RustFS.SecretAccessKey,
 	})
-	imgUc := usecase.NewImageUsecase(imageStorage)
+	mediaAssetUC := usecase.NewMediaAssetUsecase(postgres.NewMediaAssetRepository(pool), imageStorage, cfg.MediaAssetPendingTTL)
+	imgUc := usecase.NewImageUsecase(imageStorage, mediaAssetUC)
 
 	producer, err := kafkaadapter.NewProducer(cfg.Kafka.Brokers, cfg.Kafka.ResultTopic)
 	if err != nil {
