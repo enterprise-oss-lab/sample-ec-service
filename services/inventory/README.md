@@ -11,7 +11,7 @@
 docker compose up -d
 ```
 
-Inventory Service と PostgreSQL 、 Kafka (KRaft) が起動する。Kafka の起動完了は以下で確認できる。
+Inventory Service、PostgreSQL、Redis、Kafka (KRaft) が起動する。Kafka の起動完了は以下で確認できる。
 
 ```bash
 docker compose ps
@@ -200,11 +200,20 @@ result topic に失敗メッセージが届き、在庫は変化しない。
 
 ---
 
+## 在庫キャッシュ
+
+`GET /inventories` と `GET /inventories/:id` は Redis を使った cache-aside 方式で読み込む。
+キャッシュミス時は PostgreSQL から取得して Redis に保存し、TTL は在庫の更新頻度に合わせて1秒としている。
+引き当て・補充・在庫調整では PostgreSQL のトランザクションがコミットした後に、対象在庫と一覧の
+キャッシュを削除する。Redis が利用できない場合も PostgreSQL にフォールバックしてAPIを継続する。
+
 ## 環境変数
 
 | 変数 | デフォルト値 | 説明 |
 |---|---|---|
 | `DATABASE_URL` | `postgres://inventory:password@localhost:5432/inventory?sslmode=disable` | PostgreSQL 接続文字列 | <!-- pragma: allowlist secret -->
+| `REDIS_ADDR` | `localhost:6379` | Redis の接続先 |
+| `REDIS_PASSWORD` | (未設定) | Redis のパスワード |
 | `KAFKA_BROKERS` | `localhost:9092` | Kafka ブローカー（カンマ区切りで複数指定可） |
 | `KAFKA_REQUEST_TOPIC` | `inventory.reservation.requests` | 引き当てリクエスト受信トピック |
 | `KAFKA_RESULT_TOPIC` | `inventory.reservation.results` | 結果送信トピック |
