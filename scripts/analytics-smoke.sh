@@ -4,6 +4,7 @@ set -euo pipefail
 compose=(docker compose -f compose.analytics.yaml)
 spark_catalog=(
   --conf spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions
+  --conf spark.sql.defaultCatalog=analytics
   --conf spark.sql.catalog.analytics=org.apache.iceberg.spark.SparkCatalog
   --conf spark.sql.catalog.analytics.type=rest
   --conf spark.sql.catalog.analytics.uri=http://analytics-rest:8181
@@ -14,8 +15,17 @@ spark_catalog=(
 )
 
 query_trino() {
-  "${compose[@]}" exec -T analytics-trino trino --execute \
-    "SELECT count(*) AS rows, sum(amount) AS amount FROM iceberg.smoke.orders"
+  local output
+  for _ in {1..30}; do
+    if output="$("${compose[@]}" exec -T analytics-trino trino --execute \
+      "SELECT count(*) AS rows, sum(amount) AS amount FROM iceberg.smoke.orders" 2>&1)"; then
+      printf '%s\n' "$output"
+      return 0
+    fi
+    sleep 2
+  done
+  printf '%s\n' "$output" >&2
+  return 1
 }
 
 case "${1:-all}" in

@@ -31,10 +31,19 @@ services:
     command: ["mc mb --ignore-existing lake/warehouse"]
     restart: "no"
 
+  analytics-catalog-init:
+    image: alpine:3.21.3
+    command: ["chown", "-R", "1000:1000", "/var/lib/iceberg"]
+    volumes:
+      - analytics-catalog-data:/var/lib/iceberg
+    restart: "no"
+
   analytics-rest:
     image: apache/iceberg-rest-fixture:1.8.1
     depends_on:
       analytics-minio-init:
+        condition: service_completed_successfully
+      analytics-catalog-init:
         condition: service_completed_successfully
     environment:
       AWS_ACCESS_KEY_ID: analytics
