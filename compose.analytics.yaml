@@ -1,0 +1,97 @@
+name: sample-ec-analytics
+
+services:
+  analytics-minio:
+    image: quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: analytics
+      MINIO_ROOT_PASSWORD: analytics-password # pragma: allowlist secret
+      MINIO_DOMAIN: analytics-minio
+    ports:
+      - "19000:9000"
+      - "19001:9001"
+    volumes:
+      - analytics-object-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  analytics-minio-init:
+    image: quay.io/minio/mc:RELEASE.2025-04-16T18-13-26Z
+    depends_on:
+      analytics-minio:
+        condition: service_healthy
+    environment:
+      MC_HOST_lake: http://analytics:analytics-password@analytics-minio:9000
+    entrypoint: ["/bin/sh", "-ec"]
+    command: ["mc mb --ignore-existing lake/warehouse"]
+    restart: "no"
+
+  analytics-rest:
+    image: apache/iceberg-rest-fixture:1.8.1
+    depends_on:
+      analytics-minio-init:
+        condition: service_completed_successfully
+    environment:
+      AWS_ACCESS_KEY_ID: analytics
+      AWS_SECRET_ACCESS_KEY: analytics-password # pragma: allowlist secret
+      AWS_REGION: us-east-1
+      CATALOG_CATALOG_NAME: analytics
+      CATALOG_WAREHOUSE: s3://warehouse/
+      CATALOG_URI: jdbc:sqlite:/var/lib/iceberg/catalog.db?journal_mode=WAL
+      CATALOG_IO__IMPL: org.apache.iceberg.aws.s3.S3FileIO
+      CATALOG_S3_ENDPOINT: http://analytics-minio:9000
+      CATALOG_S3_PATH__STYLE__ACCESS: "true"
+    ports:
+      - "18181:8181"
+    volumes:
+      - analytics-catalog-data:/var/lib/iceberg
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8181/v1/config"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  analytics-spark:
+    image: tabulario/spark-iceberg:3.5.5_1.8.1
+    depends_on:
+      analytics-rest:
+        condition: service_healthy
+    environment:
+      AWS_ACCESS_KEY_ID: analytics
+      AWS_SECRET_ACCESS_KEY: analytics-password # pragma: allowlist secret
+      AWS_REGION: us-east-1
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["trap : TERM INT; sleep infinity & wait"]
+    volumes:
+      - ./analytics/spark:/opt/analytics/spark:ro
+    healthcheck:
+      test: ["CMD-SHELL", "test -x /opt/spark/bin/spark-sql"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  analytics-trino:
+    image: trinodb/trino:483
+    depends_on:
+      analytics-rest:
+        condition: service_healthy
+    ports:
+      - "18080:8080"
+    volumes:
+      - ./analytics/trino/catalog:/etc/trino/catalog:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://localhost:8080/v1/info >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+volumes:
+  analytics-object-data:
+  analytics-catalog-data:
