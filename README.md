@@ -61,6 +61,24 @@ pnpm dev
 - [Storefront README](frontends/storefront/README.md) — 開発コマンド、アーキテクチャ概要
 - [Admin README](frontends/admin/README.md) — 開発コマンド、アーキテクチャ概要、ローカル専用の注意
 
+## 任意のローカル分析基盤
+
+既存ECとは別の Compose project として、Spark / Iceberg REST catalog / MinIO / Trino の最小構成を起動できる。Superset と CDC は後続PRで追加する。
+
+```bash
+# clean start、Sparkでテーブル作成・2回のINSERT、Trinoで3行/合計60を検証
+./scripts/analytics-smoke.sh clean
+./scripts/analytics-smoke.sh all
+
+# catalog・保存領域・Trinoを再起動した後も同じ結果を読めることを検証
+./scripts/analytics-smoke.sh restart-read
+
+# データを保持して停止
+./scripts/analytics-smoke.sh down
+```
+
+Trino UI は <http://localhost:18080>、MinIO console は <http://localhost:19001>。構成判断、固定バージョン、ライセンス、必要メモリ、healthcheck、永続化と削除手順は [`docs/analytics-architecture.md`](docs/analytics-architecture.md) を参照する。既存ECだけを起動する従来の `docker compose up -d` には影響しない。
+
 ## Observability (OpenTelemetry)
 
 order / inventory 両サービスは OpenTelemetry で計装され、**トレース・メトリクス・ログ**の3シグナルを
