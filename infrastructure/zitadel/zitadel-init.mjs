@@ -146,11 +146,11 @@ async function ensureK6Machine(projectId) {
 
   // A machine user's id is its OAuth client_id.  Set the supplied secret on
   // every run; this is deliberate so changing .env rotates it predictably.
-  await api(`/management/v1/users/${machine.userId}/secret`, {
+  const secret = await api(`/management/v1/users/${machine.userId}/secret`, {
     method: 'PUT',
     body: { secret: process.env.ZITADEL_K6_CLIENT_SECRET },
   })
-  return machine
+  return { ...machine, clientId: secret.clientId ?? machine.userId }
 }
 
 async function disableRegistration() {
@@ -196,7 +196,7 @@ await writeFile(join(bootstrapDir, 'sample-ec-oidc.json'), `${JSON.stringify({
   projectId,
   storefrontClientId: storefront.clientId,
   adminClientId: admin.clientId,
-  k6ClientId: k6.userId,
+  k6ClientId: k6.clientId,
 }, null, 2)}\n`, { mode: 0o600 })
 
 console.log('ZITADEL Sample EC bootstrap completed')
