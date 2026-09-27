@@ -98,21 +98,40 @@ async function ensureSpa(projectId, name, redirectUri, postLogoutRedirectUri) {
   return { clientId: created.clientId ?? created.appId }
 }
 
+let organizationId
+
+async function getOrganizationId() {
+  if (organizationId) return organizationId
+  const organization = await api('/management/v1/orgs/me')
+  organizationId = organization.id ?? organization.orgId ?? organization.org?.id ?? organization.org?.orgId ?? organization.result?.id ?? organization.result?.orgId
+  if (!organizationId) throw new Error('Unable to determine the default ZITADEL organization ID')
+  return organizationId
+}
+
 async function ensureHuman({ username, email, password, firstName, lastName }) {
-  const existing = await findOne('/management/v1/users/_search', {
+  let existing = await findOne('/management/v1/users/_search', {
     userNameQuery: { userName: username, method: 'TEXT_QUERY_METHOD_EQUALS' },
   })
-  if (existing) return { userId: existing.userId ?? existing.id }
-  const created = await api('/management/v1/users/human', {
+  // Management API v1 creates a human user in USER_STATE_INITIAL. That state
+  // requires an emailed initialization code, which local test accounts do not
+  // have. Recreate legacy bootstrap accounts through the User API v2 instead:
+  // a verified email and an initial password produce an active user.
+  if (existing?.state === 'USER_STATE_INITIAL') {
+    await api(`/v2/users/${existing.userId ?? existing.id}`, { method: 'DELETE' })
+    existing = undefined
+  }
+  const user = existing ?? await api('/v2/users/human', {
     method: 'POST',
     body: {
-      userName: username,
-      profile: { firstName, lastName, displayName: `${firstName} ${lastName}`, preferredLanguage: 'ja' },
-      email: { email, isEmailVerified: true },
+      username,
+      organization: { orgId: await getOrganizationId() },
+      profile: { givenName: firstName, familyName: lastName, displayName: `${firstName} ${lastName}`, preferredLanguage: 'ja' },
+      email: { email, isVerified: true },
       password: { password, changeRequired: false },
     },
   })
-  return { userId: created.userId ?? created.id }
+  const userId = user.userId ?? user.id
+  return { userId }
 }
 
 async function ensureGrant(userId, projectId, roleKey) {

@@ -52,9 +52,9 @@ docker compose up -d
 | 用途 | ユーザー名 | パスワード |
 |---|---|---|
 | ZITADEL 運用管理 | `zitadel-admin@zitadel.localhost` | `ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD`（初期値: `ChangeMe1!`） |
-| 購入者 1 | `ZITADEL_CUSTOMER_1_USERNAME`（初期値: `customer-one`） | `ZITADEL_CUSTOMER_1_PASSWORD`（初期値: `Customer1!`） |
-| 購入者 2 | `ZITADEL_CUSTOMER_2_USERNAME`（初期値: `customer-two`） | `ZITADEL_CUSTOMER_2_PASSWORD`（初期値: `Customer2!`） |
-| EC 管理者 | `ZITADEL_ADMIN_USERNAME`（初期値: `ec-admin`） | `ZITADEL_ADMIN_PASSWORD`（初期値: `Admin1!`） |
+| 購入者 1 | `ZITADEL_CUSTOMER_1_USERNAME`（初期値: `customer-one`） | `ZITADEL_CUSTOMER_1_PASSWORD`（初期値: `CustomerOne1!`） |
+| 購入者 2 | `ZITADEL_CUSTOMER_2_USERNAME`（初期値: `customer-two`） | `ZITADEL_CUSTOMER_2_PASSWORD`（初期値: `CustomerTwo1!`） |
+| EC 管理者 | `ZITADEL_ADMIN_USERNAME`（初期値: `ec-admin`） | `ZITADEL_ADMIN_PASSWORD`（初期値: `EcAdminOne1!`） |
 
 ZITADEL 運用管理者は設定確認用であり、Storefront／Admin の動作確認には購入者または EC 管理者アカウントを使う。
 
