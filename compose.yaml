@@ -410,6 +410,8 @@ services:
     depends_on:
       - inventory
       - order-service
+    volumes:
+      - zitadel-bootstrap:/usr/share/nginx/html/zitadel:ro
 
   admin:
     build:
@@ -420,6 +422,8 @@ services:
       - "3002:80"
     depends_on:
       - inventory
+    volumes:
+      - zitadel-bootstrap:/usr/share/nginx/html/zitadel:ro
 
 volumes:
   kafka-data:

@@ -163,7 +163,6 @@ export const ProductDetail = () => {
               disabled={isOrdering || outOfStock || stockUnknown}
               onClick={() =>
                 order({
-                  customer_id: 'guest',
                   items: [{ inventory_id: detail.id, quantity: qty }],
                 })
               }
