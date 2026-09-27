@@ -1,11 +1,9 @@
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 
 from internal.domain.order import InvalidStatusTransitionError, NotFoundError, OrderItem
 from internal.usecase.order import OrderUsecase
-
-router = APIRouter(prefix="/orders")
-
+from internal.adapter.http.auth import current_subject
 
 class OrderItemRequest(BaseModel):
     inventory_id: int
@@ -13,7 +11,6 @@ class OrderItemRequest(BaseModel):
 
 
 class CreateOrderRequest(BaseModel):
-    customer_id: str
     items: list[OrderItemRequest]
 
 
@@ -33,19 +30,21 @@ class OrderResponse(BaseModel):
 
 
 def create_router(usecase: OrderUsecase) -> APIRouter:
+    router = APIRouter(prefix="/orders")
+
     @router.get("", response_model=list[OrderResponse])
     async def list_orders(
-        customer_id: str | None = Query(default=None),
+        customer_id: str = Depends(current_subject),
         limit: int = Query(default=100, ge=1, le=1000),
     ) -> list[OrderResponse]:
         orders = await usecase.list_orders(customer_id=customer_id, limit=limit)
         return [_to_response(o) for o in orders]
 
     @router.post("", status_code=status.HTTP_201_CREATED, response_model=OrderResponse)
-    async def create_order(req: CreateOrderRequest) -> OrderResponse:
+    async def create_order(req: CreateOrderRequest, customer_id: str = Depends(current_subject)) -> OrderResponse:
         try:
             order = await usecase.create_order(
-                customer_id=req.customer_id,
+                customer_id=customer_id,
                 items=[OrderItem(inventory_id=i.inventory_id, quantity=i.quantity) for i in req.items],
             )
         except ValueError as exc:
@@ -53,16 +52,21 @@ def create_router(usecase: OrderUsecase) -> APIRouter:
         return _to_response(order)
 
     @router.get("/{id}", response_model=OrderResponse)
-    async def get_order(id: str) -> OrderResponse:
+    async def get_order(id: str, customer_id: str = Depends(current_subject)) -> OrderResponse:
         try:
             order = await usecase.get_order(id)
         except NotFoundError as exc:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+        if order.customer_id != customer_id:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="order not found")
         return _to_response(order)
 
     @router.post("/{id}/cancel", status_code=status.HTTP_204_NO_CONTENT)
-    async def cancel_order(id: str) -> None:
+    async def cancel_order(id: str, customer_id: str = Depends(current_subject)) -> None:
         try:
+            order = await usecase.get_order(id)
+            if order.customer_id != customer_id:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="order not found")
             await usecase.cancel_order(id)
         except NotFoundError as exc:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))

@@ -21,6 +21,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/runtime"
 
 	"enterprise-oss-lab/sample-ec-service/inventry/config"
+	"enterprise-oss-lab/sample-ec-service/inventry/internal/adapter/auth"
 	httphandler "enterprise-oss-lab/sample-ec-service/inventry/internal/adapter/http"
 	kafkaadapter "enterprise-oss-lab/sample-ec-service/inventry/internal/adapter/kafka"
 	"enterprise-oss-lab/sample-ec-service/inventry/internal/adapter/storage"
@@ -148,6 +149,25 @@ func main() {
 		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders: []string{"Content-Type", "Authorization"},
 	}))
+	validator, err := auth.NewValidator(cfg.ZitadelBootstrapConfig)
+	if err != nil {
+		logger.ErrorContext(ctx, "failed to configure ZITADEL token validation", "error", err)
+		os.Exit(1)
+	}
+	r.Use(func(c *gin.Context) {
+		if len(c.Request.URL.Path) >= len("/admin/") && c.Request.URL.Path[:len("/admin/")] == "/admin/" {
+			header := c.GetHeader("Authorization")
+			if header == "" {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
+				return
+			}
+			if err := validator.ValidateAdmin(header); err != nil {
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+				return
+			}
+		}
+		c.Next()
+	})
 	h.RegisterRoutes(r)
 	httphandler.NewProductHandler(productUC).RegisterRoutes(r)
 	httphandler.NewMediaAssetHandler(mediaAssetUC).RegisterRoutes(r)

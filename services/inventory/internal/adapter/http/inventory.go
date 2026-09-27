@@ -27,8 +27,6 @@ func (h *InventoryHandler) RegisterRoutes(r *gin.Engine) {
 	g := r.Group("/inventories")
 	g.GET("", h.ListInventories)
 	g.GET("/:id", h.GetInventory)
-	g.POST("/:id/reserve", h.Reserve)
-	g.POST("/:id/restock", h.Restock)
 
 	admin := r.Group("/admin/inventories")
 	admin.POST("", h.CreateProduct)
