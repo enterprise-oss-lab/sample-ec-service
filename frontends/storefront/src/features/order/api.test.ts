@@ -42,7 +42,7 @@ describe('createOrder', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }))
 
     await expect(
-      createOrder({ customer_id: 'guest', items: [{ inventory_id: 1, quantity: 1 }] }),
+      createOrder({ items: [{ inventory_id: 1, quantity: 1 }] }),
     ).resolves.toBeUndefined()
   })
 
@@ -50,7 +50,7 @@ describe('createOrder', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
 
     await expect(
-      createOrder({ customer_id: 'guest', items: [{ inventory_id: 1, quantity: 1 }] }),
+      createOrder({ items: [{ inventory_id: 1, quantity: 1 }] }),
     ).rejects.toThrow('Failed to create order')
   })
 })
