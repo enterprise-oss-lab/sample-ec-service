@@ -1,4 +1,4 @@
-import { readFile, writeFile } from 'node:fs/promises'
+import { chmod, readFile, writeFile } from 'node:fs/promises'
 import http from 'node:http'
 import { join } from 'node:path'
 
@@ -78,7 +78,7 @@ async function ensureSpa(projectId, name, redirectUri, postLogoutRedirectUri) {
   const existing = await findOne(`/management/v1/projects/${projectId}/apps/_search`, {
     nameQuery: { name, method: 'TEXT_QUERY_METHOD_EQUALS' },
   })
-  if (existing) return { clientId: existing.clientId ?? existing.id }
+  if (existing) return { clientId: existing.oidcConfig?.clientId ?? existing.clientId ?? existing.id }
   const created = await api(`/management/v1/projects/${projectId}/apps/oidc`, {
     method: 'POST',
     body: {
@@ -91,6 +91,7 @@ async function ensureSpa(projectId, name, redirectUri, postLogoutRedirectUri) {
       authMethodType: 'OIDC_AUTH_METHOD_TYPE_NONE',
       version: 'OIDC_VERSION_1_0',
       accessTokenType: 'OIDC_TOKEN_TYPE_JWT',
+      accessTokenRoleAssertion: true,
       idTokenRoleAssertion: true,
       devMode: true,
     },
@@ -163,13 +164,24 @@ async function ensureK6Machine(projectId) {
   })
   await ensureGrant(machine.userId, projectId, 'admin')
 
-  // A machine user's id is its OAuth client_id.  Set the supplied secret on
-  // every run; this is deliberate so changing .env rotates it predictably.
+  // ZITADEL generates machine-user secrets server side. Persist the generated
+  // value in the local-only .env file so k6 can use the same value after a
+  // subsequent `docker compose up` reruns this initializer.
   const secret = await api(`/management/v1/users/${machine.userId}/secret`, {
     method: 'PUT',
-    body: { secret: process.env.ZITADEL_K6_CLIENT_SECRET },
   })
+  await writeK6Secret(secret.clientSecret)
   return { ...machine, clientId: secret.clientId ?? machine.userId }
+}
+
+async function writeK6Secret(secret) {
+  const envFile = process.env.ZITADEL_ENV_FILE
+  if (!envFile || !secret) throw new Error('ZITADEL_ENV_FILE and generated k6 client secret are required')
+  const env = await readFile(envFile, 'utf8')
+  const next = env.match(/^ZITADEL_K6_CLIENT_SECRET=/m)
+    ? env.replace(/^ZITADEL_K6_CLIENT_SECRET=.*$/m, `ZITADEL_K6_CLIENT_SECRET=${secret}`)
+    : `${env.replace(/\n?$/, '\n')}ZITADEL_K6_CLIENT_SECRET=${secret}\n`
+  await writeFile(envFile, next, { mode: 0o600 })
 }
 
 async function disableRegistration() {
@@ -211,11 +223,18 @@ for (const user of users) {
 const k6 = await ensureK6Machine(projectId)
 
 await writeFile(join(bootstrapDir, 'sample-ec-oidc.json'), `${JSON.stringify({
-  issuer: 'http://localhost:8080',
+  issuer: 'http://localhost',
+  oidcEndpoint: 'http://localhost:8080',
+  // Backends keep the public issuer for claim validation but fetch the JWK set
+  // through the Compose network, where localhost would mean the backend
+  // container itself.
+  jwksUrl: 'http://zitadel-api:8080/oauth/v2/keys',
+  jwksHost: 'localhost',
   projectId,
   storefrontClientId: storefront.clientId,
   adminClientId: admin.clientId,
   k6ClientId: k6.clientId,
-}, null, 2)}\n`, { mode: 0o600 })
+}, null, 2)}\n`, { mode: 0o644 })
+await chmod(join(bootstrapDir, 'sample-ec-oidc.json'), 0o644)
 
 console.log('ZITADEL Sample EC bootstrap completed')
