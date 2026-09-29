@@ -170,7 +170,9 @@ async function ensureK6Machine(projectId) {
   const secret = await api(`/management/v1/users/${machine.userId}/secret`, {
     method: 'PUT',
   })
-  await writeK6Secret(secret.clientSecret)
+  // Existing machine-user secrets are intentionally not returned by ZITADEL.
+  // Keep the already persisted local value when bootstrap is rerun.
+  if (secret.clientSecret) await writeK6Secret(secret.clientSecret)
   return { ...machine, clientId: secret.clientId ?? machine.userId }
 }
 
