@@ -71,3 +71,6 @@ export default defineConfig([
   },
 ])
 ```
+## 認証
+
+Storefront はZITADELのAuthorization Code + PKCEを使う。注文と注文履歴はログイン必須で、トークンはブラウザの `sessionStorage` にだけ保存する。ローカルではルートREADME記載の `customer-one` または `customer-two` を使う。
