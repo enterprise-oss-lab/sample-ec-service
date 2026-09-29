@@ -223,7 +223,9 @@ for (const user of users) {
 const k6 = await ensureK6Machine(projectId)
 
 await writeFile(join(bootstrapDir, 'sample-ec-oidc.json'), `${JSON.stringify({
-  issuer: 'http://localhost',
+  // Must match the `iss` claim ZITADEL emits. The public reverse proxy is
+  // published on host port 8080, while backends use jwksUrl internally.
+  issuer: 'http://localhost:8080',
   oidcEndpoint: 'http://localhost:8080',
   // Backends keep the public issuer for claim validation but fetch the JWK set
   // through the Compose network, where localhost would mean the backend
