@@ -172,8 +172,8 @@ async function ensureK6Machine(projectId) {
   })
   // Existing machine-user secrets are intentionally not returned by ZITADEL.
   // Keep the already persisted local value when bootstrap is rerun.
-  if (secret.clientSecret) await writeK6Secret(secret.clientSecret)
-  return { ...machine, clientId: secret.clientId ?? machine.userId }
+  if (secret?.clientSecret) await writeK6Secret(secret.clientSecret)
+  return { ...machine, clientId: secret?.clientId ?? machine.userId }
 }
 
 async function writeK6Secret(secret) {
