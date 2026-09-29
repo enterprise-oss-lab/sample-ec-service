@@ -78,24 +78,24 @@ async function ensureSpa(projectId, name, redirectUri, postLogoutRedirectUri) {
   const existing = await findOne(`/management/v1/projects/${projectId}/apps/_search`, {
     nameQuery: { name, method: 'TEXT_QUERY_METHOD_EQUALS' },
   })
-  if (existing) return { clientId: existing.oidcConfig?.clientId ?? existing.clientId ?? existing.id }
-  const created = await api(`/management/v1/projects/${projectId}/apps/oidc`, {
-    method: 'POST',
-    body: {
-      name,
-      redirectUris: [redirectUri],
-      postLogoutRedirectUris: [postLogoutRedirectUri],
-      responseTypes: ['OIDC_RESPONSE_TYPE_CODE'],
-      grantTypes: ['OIDC_GRANT_TYPE_AUTHORIZATION_CODE', 'OIDC_GRANT_TYPE_REFRESH_TOKEN'],
-      appType: 'OIDC_APP_TYPE_USER_AGENT',
-      authMethodType: 'OIDC_AUTH_METHOD_TYPE_NONE',
-      version: 'OIDC_VERSION_1_0',
-      accessTokenType: 'OIDC_TOKEN_TYPE_JWT',
-      accessTokenRoleAssertion: true,
-      idTokenRoleAssertion: true,
-      devMode: true,
-    },
-  })
+  const config = {
+    redirectUris: [redirectUri],
+    postLogoutRedirectUris: [postLogoutRedirectUri],
+    responseTypes: ['OIDC_RESPONSE_TYPE_CODE'],
+    grantTypes: ['OIDC_GRANT_TYPE_AUTHORIZATION_CODE', 'OIDC_GRANT_TYPE_REFRESH_TOKEN'],
+    appType: 'OIDC_APP_TYPE_USER_AGENT',
+    authMethodType: 'OIDC_AUTH_METHOD_TYPE_NONE',
+    version: 'OIDC_VERSION_1_0',
+    accessTokenType: 'OIDC_TOKEN_TYPE_JWT',
+    accessTokenRoleAssertion: true,
+    idTokenRoleAssertion: true,
+    devMode: true,
+  }
+  if (existing) {
+    await api(`/management/v1/projects/${projectId}/apps/${existing.id}/oidc_config`, { method: 'PUT', body: config })
+    return { clientId: existing.oidcConfig?.clientId ?? existing.clientId ?? existing.id }
+  }
+  const created = await api(`/management/v1/projects/${projectId}/apps/oidc`, { method: 'POST', body: { name, ...config } })
   return { clientId: created.clientId ?? created.appId }
 }
 
