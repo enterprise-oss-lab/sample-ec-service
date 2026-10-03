@@ -60,3 +60,6 @@ pnpm test:e2e     # Playwright（page.route でバックエンドをモック）
 
 storefront とは対照的に、業務ツールとしてライトテーマ・システムフォント・等幅数字・高密度テーブルを採用。
 アクセント色に storefront の sage を借りる。
+## 認証
+
+Admin はZITADELのAuthorization Code + PKCEを使い、`admin` ロールを持つ `ec-admin` だけが管理画面と `/admin/*` APIを利用できる。ローカルの認証情報はルートREADMEを参照。

@@ -28,6 +28,8 @@
 初期化処理は ZITADEL が生成した client secret をローカルの `.env` に更新するため、
 Compose 起動後の値を使う。
 
+`POST /orders` はk6サービスアカウントのBearerトークンで呼び、`customer_id` はリクエストに含めない。補充も同じトークンで管理APIへ送る。
+
 ## 実行
 
 リポジトリのルートから:
