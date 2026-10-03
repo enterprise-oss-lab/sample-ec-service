@@ -4,6 +4,7 @@ import { useProducts } from '../hooks/useProducts'
 import { useStocks } from '../hooks/useStocks'
 import { useCreateOrder } from '../../order/hooks/useCreateOrder'
 import { useFlash } from '@/shared/Flash'
+import { useAuth } from '@/auth/context'
 import type { Product } from '../api'
 
 const ProductPlaceholder = (_: { id: number }) => (
@@ -34,6 +35,7 @@ const ProductImage = ({ product }: { product: Product }) => {
 export const ProductList = () => {
   const navigate = useNavigate()
   const { flash } = useFlash()
+  const { session, login } = useAuth()
   // カタログと在庫は別クエリ。staleTime が違う (api.ts のコメント参照) ため、
   // 1本にまとめるとカタログを長く寝かせられなくなる。
   const { data: products, isPending: productsPending, isError: productsError } = useProducts()
@@ -45,6 +47,7 @@ export const ProductList = () => {
     },
   })
   const [quantities, setQuantities] = useState<Record<number, number>>({})
+  const [hoveredOrderId, setHoveredOrderId] = useState<number | null>(null)
 
   if (productsPending || stocksPending) return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -139,21 +142,41 @@ export const ProductList = () => {
                     </button>
                   </div>
                 )}
-                <button
-                  className={`w-full py-2 text-[0.8rem] rounded border transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-40 bg-transparent
-                    ${outOfStock || isThisOrdering
-                      ? 'border-border text-dim'
-                      : 'border-sage text-sage hover:bg-sage-light/40'
-                    }`}
-                  disabled={isThisOrdering || outOfStock}
-                  onClick={() =>
-                    order({
-                      items: [{ inventory_id: product.id, quantity: qty }],
-                    })
-                  }
-                >
-                  {isThisOrdering ? '注文中...' : outOfStock ? '在庫なし' : '注文する'}
-                </button>
+                <div className="relative">
+                  <button
+                    className={`w-full py-2 text-[0.8rem] rounded border transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-40 bg-transparent
+                      ${outOfStock || isThisOrdering
+                        ? 'border-border text-dim'
+                        : 'border-sage text-sage hover:bg-sage-light/40'
+                      }`}
+                    disabled={isThisOrdering || outOfStock}
+                    aria-describedby={!session ? `login-required-${product.id}` : undefined}
+                    onMouseEnter={() => { if (!session) setHoveredOrderId(product.id) }}
+                    onMouseLeave={() => setHoveredOrderId(null)}
+                    onFocus={() => { if (!session) setHoveredOrderId(product.id) }}
+                    onBlur={() => setHoveredOrderId(null)}
+                    onClick={() => {
+                      if (!session) {
+                        void login()
+                        return
+                      }
+                      order({
+                        items: [{ inventory_id: product.id, quantity: qty }],
+                      })
+                    }}
+                  >
+                    {isThisOrdering ? '注文中...' : outOfStock ? '在庫なし' : '注文する'}
+                  </button>
+                  {!session && hoveredOrderId === product.id && (
+                    <div
+                      id={`login-required-${product.id}`}
+                      role="tooltip"
+                      className="absolute bottom-full left-1/2 z-10 mb-2 w-max max-w-[calc(100vw-3rem)] -translate-x-1/2 rounded bg-pale px-3 py-2 text-xs text-white shadow-lg"
+                    >
+                      注文にはログインが必要です
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </li>
