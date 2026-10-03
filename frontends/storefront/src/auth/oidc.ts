@@ -115,7 +115,7 @@ export async function logout() {
   clearSession()
   const oidc = await config()
   const url = new URL('/oidc/v1/end_session', oidc.oidcEndpoint)
-  url.searchParams.set('post_logout_redirect_uri', window.location.origin)
+  url.searchParams.set('post_logout_redirect_uri', `${window.location.origin}/`)
   if (session?.idToken) url.searchParams.set('id_token_hint', session.idToken)
   window.location.assign(url)
 }
