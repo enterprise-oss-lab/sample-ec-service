@@ -1,3 +1,5 @@
+import { header } from '@/auth/oidc'
+
 type InventoryResponse = {
   id: number
   name: string
@@ -69,10 +71,11 @@ export async function fetchInventory(id: number): Promise<Inventory> {
 export async function adjustStock(id: number, delta: number): Promise<void> {
   const res = await fetch(`${INVENTORY_API_BASE_URL}/admin/inventories/${id}/adjust`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...header() },
     body: JSON.stringify({ delta }),
   })
   if (!res.ok) {
+    if (res.status === 401 || res.status === 403) window.dispatchEvent(new CustomEvent('sample-ec:auth-error', { detail: res.status }))
     const body = await res.json().catch(() => null)
     throw new Error(body?.error ?? 'Failed to adjust stock')
   }
@@ -94,6 +97,7 @@ export type UpdateProductRequest = {
 }
 
 async function parseErrorMessage(res: Response, fallback: string): Promise<string> {
+  if (res.status === 401 || res.status === 403) window.dispatchEvent(new CustomEvent('sample-ec:auth-error', { detail: res.status }))
   const body = await res.json().catch(() => null)
   return body?.error ?? fallback
 }
@@ -101,7 +105,7 @@ async function parseErrorMessage(res: Response, fallback: string): Promise<strin
 export async function createProduct(req: CreateProductRequest): Promise<Inventory> {
   const res = await fetch(`${INVENTORY_API_BASE_URL}/admin/inventories`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...header() },
     body: JSON.stringify(req),
   })
   if (!res.ok) throw new Error(await parseErrorMessage(res, 'Failed to create product'))
@@ -112,7 +116,7 @@ export async function createProduct(req: CreateProductRequest): Promise<Inventor
 export async function updateProduct(id: number, req: UpdateProductRequest): Promise<Inventory> {
   const res = await fetch(`${INVENTORY_API_BASE_URL}/admin/inventories/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...header() },
     body: JSON.stringify(req),
   })
   if (!res.ok) throw new Error(await parseErrorMessage(res, 'Failed to update product'))
@@ -122,7 +126,7 @@ export async function updateProduct(id: number, req: UpdateProductRequest): Prom
 
 export async function deleteProduct(id: number): Promise<void> {
   const res = await fetch(`${INVENTORY_API_BASE_URL}/admin/inventories/${id}`, {
-    method: 'DELETE',
+    method: 'DELETE', headers: header(),
   })
   if (!res.ok) throw new Error(await parseErrorMessage(res, 'Failed to delete product'))
 }

@@ -20,6 +20,7 @@ import { Flash, FlashProvider } from './shared/Flash/index.tsx'
 import './index.css'
 import { ProductPage } from './pages/Product/index.tsx'
 import { ProductDetailPage } from './pages/ProductDetail/index.tsx'
+import { AuthProvider, RequireAuth } from './auth/context.tsx'
 
 const queryClient = new QueryClient()
 
@@ -28,16 +29,19 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <FlashProvider>
         <BrowserRouter>
-          <Header />
-          <Flash />
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/products" element={<ProductPage />} />
-            <Route path="/products/:id" element={<ProductDetailPage />} />
-            <Route path="/orders" element={<OrderPage />} />
-            <Route path="/account" element={<AccountPage />} />
-            <Route path="/cart" element={<CartPage />} />
-          </Routes>
+          <AuthProvider>
+            <Header />
+            <Flash />
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/products" element={<ProductPage />} />
+              <Route path="/products/:id" element={<ProductDetailPage />} />
+              <Route path="/orders" element={<RequireAuth><OrderPage /></RequireAuth>} />
+              <Route path="/account" element={<AccountPage />} />
+              <Route path="/cart" element={<CartPage />} />
+              <Route path="/auth/callback" element={<p className="p-8">ログイン中...</p>} />
+            </Routes>
+          </AuthProvider>
         </BrowserRouter>
       </FlashProvider>
     </QueryClientProvider>

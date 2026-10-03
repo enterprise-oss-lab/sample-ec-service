@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, type ReactNode } from "react"
 import { NavLink } from "react-router"
 import { useFlash } from "@/shared/Flash"
+import { useAuth } from "@/auth/context"
 
 const NAV_ITEMS = [
   { to: "/", label: "ホーム", end: true },
@@ -50,12 +51,14 @@ const IconButton = ({ onClick, "aria-label": ariaLabel, active, children, classN
 
 export const Header = () => {
   const { flash } = useFlash()
+  const { session } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [scrolled, setScrolled] = useState(false)
   const [cartCount] = useState(2)
   const searchRef = useRef<HTMLInputElement>(null)
+  const navItems = session ? NAV_ITEMS : NAV_ITEMS.filter(({ to }) => to !== "/orders")
 
   useEffect(() => {
     const id = "app-fonts"
@@ -122,7 +125,7 @@ export const Header = () => {
 
             {/* ── Desktop nav ── */}
             <nav className="hidden md:flex items-center gap-8">
-              {NAV_ITEMS.map(({ to, label, end }) => (
+              {navItems.map(({ to, label, end }) => (
                 <NavLink
                   key={to}
                   to={to}
@@ -245,7 +248,7 @@ export const Header = () => {
         />
 
         <nav className="flex flex-col">
-          {NAV_ITEMS.map(({ to, label, end }, i) => (
+          {navItems.map(({ to, label, end }, i) => (
             <NavLink
               key={to}
               to={to}

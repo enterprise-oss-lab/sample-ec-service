@@ -49,6 +49,13 @@ test.describe('商品作成', () => {
         route.continue()
       }
     })
+    await page.addInitScript(() => {
+      sessionStorage.setItem('sample-ec.admin.session', JSON.stringify({
+        accessToken: 'test-admin-token',
+        expiresAt: Date.now() + 60 * 60 * 1000,
+        roles: ['admin'],
+      }))
+    })
   })
 
   test('商品を作成すると一覧に出る', async ({ page }) => {

@@ -23,7 +23,7 @@ describe('fetchProducts', () => {
   it('カタログ API (/products) を叩く', async () => {
     const fetchMock = stubFetch([productResponse])
     await fetchProducts()
-    expect(fetchMock).toHaveBeenCalledWith('/products')
+    expect(fetchMock).toHaveBeenCalledWith(`${import.meta.env.VITE_INVENTORY_API_BASE_URL ?? ''}/products`)
   })
 
   it('image_key を imageUrl にマップして返す', async () => {
@@ -57,7 +57,7 @@ describe('fetchProduct', () => {
   it('id 付きのカタログ API を叩く', async () => {
     const fetchMock = stubFetch(productResponse)
     const product = await fetchProduct(1)
-    expect(fetchMock).toHaveBeenCalledWith('/products/1')
+    expect(fetchMock).toHaveBeenCalledWith(`${import.meta.env.VITE_INVENTORY_API_BASE_URL ?? ''}/products/1`)
     expect(product?.imageUrl).toBe(`${import.meta.env.VITE_IMAGE_BASE_URL ?? ''}/products/a.png`)
   })
 
@@ -76,7 +76,7 @@ describe('fetchStocks', () => {
   it('在庫 API (/inventories) を叩く', async () => {
     const fetchMock = stubFetch([{ id: 1, name: 'Product A', count: 5 }])
     const stocks = await fetchStocks()
-    expect(fetchMock).toHaveBeenCalledWith('/inventories')
+    expect(fetchMock).toHaveBeenCalledWith(`${import.meta.env.VITE_INVENTORY_API_BASE_URL ?? ''}/inventories`)
     expect(stocks[0].count).toBe(5)
   })
 
@@ -90,7 +90,7 @@ describe('fetchStock', () => {
   it('id 付きの在庫 API を叩く', async () => {
     const fetchMock = stubFetch({ id: 1, name: 'Product A', count: 5 })
     const stock = await fetchStock(1)
-    expect(fetchMock).toHaveBeenCalledWith('/inventories/1')
+    expect(fetchMock).toHaveBeenCalledWith(`${import.meta.env.VITE_INVENTORY_API_BASE_URL ?? ''}/inventories/1`)
     expect(stock.count).toBe(5)
   })
 

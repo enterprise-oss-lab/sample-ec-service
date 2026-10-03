@@ -3,7 +3,7 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { server } from '@/mocks/server'
-import { renderWithProviders } from '@/test-utils'
+import { authenticateForTest, renderWithProviders } from '@/test-utils'
 import { ProductList } from './ProductList'
 
 const mockNavigate = vi.fn()
@@ -124,6 +124,7 @@ describe('ProductList', () => {
 
   it('「注文する」クリックで createOrder が呼ばれる', async () => {
     const user = userEvent.setup()
+    authenticateForTest()
     await renderAndWait()
 
     const items = screen.getAllByRole('listitem')
@@ -136,6 +137,7 @@ describe('ProductList', () => {
 
   it('注文成功後に flash メッセージが表示されて /orders に遷移する', async () => {
     const user = userEvent.setup()
+    authenticateForTest()
     await renderAndWait()
 
     const items = screen.getAllByRole('listitem')
@@ -147,5 +149,16 @@ describe('ProductList', () => {
       expect(screen.getByText('注文が完了しました')).toBeInTheDocument(),
     )
     expect(mockNavigate).toHaveBeenCalledWith('/orders')
+  })
+
+  it('未ログインで注文ボタンをホバーするとログインを促すポップアップを表示する', async () => {
+    const user = userEvent.setup()
+    await renderAndWait()
+
+    const productAItem = screen.getAllByRole('listitem').find((item) => item.textContent?.includes('Product A'))!
+    await user.hover(within(productAItem).getByRole('button', { name: '注文する' }))
+
+    expect(screen.getByText('注文にはログインが必要です')).toBeInTheDocument()
+    expect(mockNavigate).not.toHaveBeenCalled()
   })
 })
