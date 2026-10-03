@@ -23,6 +23,11 @@ Order Service が注文作成時に在庫予約リクエストを Kafka に publ
 ## クイックスタート
 
 リポジトリルートで、Kafka・PostgreSQL・RustFS・各サービス・Storefront・Admin をまとめて起動する。
+初回は `.env.example` をコピーし、ローカル専用の認証情報を設定する。
+
+```bash
+cp .env.example .env
+```
 
 ```bash
 docker compose up -d
@@ -37,6 +42,21 @@ docker compose up -d
 | Inventory Service | http://localhost:18081 |
 | RustFS (S3 API / コンソール) | http://localhost:9000 / http://localhost:9001 |
 | Kafka | localhost:19092 |
+| ZITADEL | http://localhost:8080 |
+
+### ローカル開発用ログインアカウント
+
+下表は `.env.example` の初期値である。実際にログインする際は、Git 管理外の `.env` に設定した値を使用する。
+自己登録は無効で、利用者はこの初期アカウントを使う。
+
+| 用途 | ユーザー名 | パスワード |
+|---|---|---|
+| ZITADEL 運用管理 | `zitadel-admin@zitadel.localhost` | `ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD`（初期値: `ChangeMe1!`） |
+| 購入者 1 | `ZITADEL_CUSTOMER_1_USERNAME`（初期値: `customer-one`） | `ZITADEL_CUSTOMER_1_PASSWORD`（初期値: `CustomerOne1!`） |
+| 購入者 2 | `ZITADEL_CUSTOMER_2_USERNAME`（初期値: `customer-two`） | `ZITADEL_CUSTOMER_2_PASSWORD`（初期値: `CustomerTwo1!`） |
+| EC 管理者 | `ZITADEL_ADMIN_USERNAME`（初期値: `ec-admin`） | `ZITADEL_ADMIN_PASSWORD`（初期値: `EcAdminOne1!`） |
+
+ZITADEL 運用管理者は設定確認用であり、Storefront／Admin の動作確認には購入者または EC 管理者アカウントを使う。
 
 > **Postgres の migration は named volume が空のときしか実行されない。**
 > `services/inventory/db/migrations/` を追加・変更した後、既存のボリュームには反映されないので
