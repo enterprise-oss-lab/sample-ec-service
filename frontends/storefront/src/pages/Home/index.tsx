@@ -1,7 +1,11 @@
 import { NavLink } from "react-router"
+import { useAuth } from "@/auth/context"
 
-export const HomePage = () => (
-  <div className="bg-canvas min-h-screen flex flex-col">
+export const HomePage = () => {
+  const { session } = useAuth()
+
+  return (
+    <div className="bg-canvas min-h-screen flex flex-col">
 
     {/* ── Hero ── */}
     <section className="flex-1 max-w-5xl mx-auto w-full px-6 flex flex-col justify-center py-24">
@@ -25,12 +29,14 @@ export const HomePage = () => (
             <path d="M5 12h14M12 5l7 7-7 7" />
           </svg>
         </NavLink>
-        <NavLink
-          to="/orders"
-          className="inline-flex items-center gap-2 px-7 py-3.5 border border-border text-soft text-[0.875rem] font-medium tracking-wide rounded no-underline transition-colors duration-150 hover:border-sage hover:text-sage"
-        >
-          注文履歴
-        </NavLink>
+        {session && (
+          <NavLink
+            to="/orders"
+            className="inline-flex items-center gap-2 px-7 py-3.5 border border-border text-soft text-[0.875rem] font-medium tracking-wide rounded no-underline transition-colors duration-150 hover:border-sage hover:text-sage"
+          >
+            注文履歴
+          </NavLink>
+        )}
       </div>
     </section>
 
@@ -50,5 +56,6 @@ export const HomePage = () => (
       </div>
     </footer>
 
-  </div>
-)
+    </div>
+  )
+}

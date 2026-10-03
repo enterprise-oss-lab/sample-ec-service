@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { Route, Routes } from 'react-router'
 import { server } from '@/mocks/server'
-import { renderWithProviders } from '@/test-utils'
+import { authenticateForTest, renderWithProviders } from '@/test-utils'
 import { ProductDetail } from './ProductDetail'
 
 const mockNavigate = vi.fn()
@@ -86,6 +86,7 @@ describe('ProductDetail', () => {
 
   it('数量を増やして注文すると /orders に遷移する', async () => {
     const user = userEvent.setup()
+    authenticateForTest()
     renderDetail('1')
     await waitFor(() => expect(screen.getByRole('button', { name: '注文する' })).toBeEnabled())
 
@@ -96,5 +97,15 @@ describe('ProductDetail', () => {
 
     await user.click(screen.getByRole('button', { name: '注文する' }))
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/orders'))
+  })
+
+  it('未ログインで注文ボタンをホバーするとログインを促すポップアップを表示する', async () => {
+    const user = userEvent.setup()
+    renderDetail('1')
+    await waitFor(() => expect(screen.getByRole('button', { name: '注文する' })).toBeEnabled())
+
+    await user.hover(screen.getByRole('button', { name: '注文する' }))
+
+    expect(screen.getByText('注文にはログインが必要です')).toBeInTheDocument()
   })
 })
