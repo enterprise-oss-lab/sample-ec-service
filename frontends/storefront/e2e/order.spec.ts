@@ -24,6 +24,16 @@ const mockOrders = [
 ]
 
 test.describe('注文履歴ページ', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      sessionStorage.setItem('sample-ec.storefront.session', JSON.stringify({
+        accessToken: 'test-customer-token',
+        expiresAt: Date.now() + 60 * 60 * 1000,
+        profile: { roles: ['customer'] },
+      }))
+    })
+  })
+
   test('注文履歴ページに注文リストが表示される', async ({ page }) => {
     await page.route(`${ORDER_API}/orders`, (route) => {
       route.fulfill({ json: mockOrders })
