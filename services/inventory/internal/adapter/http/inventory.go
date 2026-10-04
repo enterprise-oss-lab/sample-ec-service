@@ -23,18 +23,18 @@ func NewInventoryHandler(uc usecase.InventoryUsecase, productUC usecase.ProductU
 	return &InventoryHandler{uc: uc, productUC: productUC, imgUc: imgUc}
 }
 
-func (h *InventoryHandler) RegisterRoutes(r *gin.Engine) {
+func (h *InventoryHandler) RegisterRoutes(r *gin.Engine, admin *gin.RouterGroup) {
 	g := r.Group("/inventories")
 	g.GET("", h.ListInventories)
 	g.GET("/:id", h.GetInventory)
 
-	admin := r.Group("/admin/inventories")
-	admin.POST("", h.CreateProduct)
-	admin.PUT("/:id", h.UpdateProduct)
-	admin.DELETE("/:id", h.DeleteProduct)
-	admin.POST("/:id/adjust", h.AdjustStock)
+	adminInventories := admin.Group("/inventories")
+	adminInventories.POST("", h.CreateProduct)
+	adminInventories.PUT("/:id", h.UpdateProduct)
+	adminInventories.DELETE("/:id", h.DeleteProduct)
+	adminInventories.POST("/:id/adjust", h.AdjustStock)
 
-	r.POST("/admin/images", h.UploadImage)
+	admin.POST("/images", h.UploadImage)
 }
 
 func (h *InventoryHandler) ListInventories(c *gin.Context) {

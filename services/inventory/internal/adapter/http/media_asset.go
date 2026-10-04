@@ -16,8 +16,8 @@ func NewMediaAssetHandler(uc usecase.MediaAssetUsecase) *MediaAssetHandler {
 	return &MediaAssetHandler{uc: uc}
 }
 
-func (h *MediaAssetHandler) RegisterRoutes(r *gin.Engine) {
-	r.POST("/admin/media-assets/cleanup", h.CleanupExpired)
+func (h *MediaAssetHandler) RegisterRoutes(admin *gin.RouterGroup) {
+	admin.POST("/media-assets/cleanup", h.CleanupExpired)
 }
 
 func (h *MediaAssetHandler) CleanupExpired(c *gin.Context) {

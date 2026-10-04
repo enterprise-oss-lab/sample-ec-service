@@ -14,6 +14,8 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 func TestRequireAdmin(t *testing.T) {
@@ -44,12 +46,16 @@ func TestRequireAdmin(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	handler := validator.RequireAdmin(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) }))
+	router := gin.New()
+	router.GET("/inventories", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+	admin := router.Group("/admin")
+	admin.Use(validator.RequireAdmin())
+	admin.POST("/inventories/:id/adjust", func(c *gin.Context) { c.Status(http.StatusNoContent) })
 
 	t.Run("public endpoint remains anonymous", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/inventories", nil)
 		res := httptest.NewRecorder()
-		handler.ServeHTTP(res, req)
+		router.ServeHTTP(res, req)
 		if res.Code != http.StatusNoContent {
 			t.Fatalf("status = %d, want %d", res.Code, http.StatusNoContent)
 		}
@@ -57,7 +63,7 @@ func TestRequireAdmin(t *testing.T) {
 	t.Run("admin endpoint rejects missing token", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/admin/inventories/1/adjust", nil)
 		res := httptest.NewRecorder()
-		handler.ServeHTTP(res, req)
+		router.ServeHTTP(res, req)
 		if res.Code != http.StatusUnauthorized {
 			t.Fatalf("status = %d, want %d", res.Code, http.StatusUnauthorized)
 		}
@@ -66,7 +72,7 @@ func TestRequireAdmin(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/admin/inventories/1/adjust", nil)
 		req.Header.Set("Authorization", "Bearer "+signedToken(t, privateKey, server.URL, "admin-client", "project-id", "customer"))
 		res := httptest.NewRecorder()
-		handler.ServeHTTP(res, req)
+		router.ServeHTTP(res, req)
 		if res.Code != http.StatusForbidden {
 			t.Fatalf("status = %d, want %d", res.Code, http.StatusForbidden)
 		}
@@ -75,7 +81,7 @@ func TestRequireAdmin(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/admin/inventories/1/adjust", nil)
 		req.Header.Set("Authorization", "Bearer "+signedToken(t, privateKey, server.URL, "admin-client", "project-id", "admin"))
 		res := httptest.NewRecorder()
-		handler.ServeHTTP(res, req)
+		router.ServeHTTP(res, req)
 		if res.Code != http.StatusNoContent {
 			t.Fatalf("status = %d, want %d", res.Code, http.StatusNoContent)
 		}

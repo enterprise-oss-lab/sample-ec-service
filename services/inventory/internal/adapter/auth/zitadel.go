@@ -15,6 +15,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 type bootstrapConfig struct {
@@ -55,22 +57,19 @@ func NewValidator(configPath string) (*Validator, error) {
 	return &Validator{issuer: strings.TrimSuffix(config.Issuer, "/"), jwksURL: jwksURL, jwksHost: config.JWKSHost, projectID: config.ProjectID, k6ClientID: config.K6ClientID, audiences: map[string]struct{}{config.AdminClientID: {}, config.K6ClientID: {}}, client: &http.Client{Timeout: 5 * time.Second}}, nil
 }
 
-func (v *Validator) RequireAdmin(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.HasPrefix(r.URL.Path, "/admin/") {
-			next.ServeHTTP(w, r)
+func (v *Validator) RequireAdmin() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		header := c.GetHeader("Authorization")
+		if header == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
 			return
 		}
-		if !strings.HasPrefix(r.Header.Get("Authorization"), "Bearer ") {
-			http.Error(w, `{"error":"authentication required"}`, http.StatusUnauthorized)
+		if err := v.ValidateAdmin(header); err != nil {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 			return
 		}
-		if err := v.ValidateAdmin(r.Header.Get("Authorization")); err != nil {
-			http.Error(w, `{"error":"forbidden"}`, http.StatusForbidden)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
+		c.Next()
+	}
 }
 
 // ValidateAdmin verifies that header contains a valid ZITADEL access token for
