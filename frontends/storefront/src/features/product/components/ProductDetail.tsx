@@ -45,6 +45,7 @@ export const ProductDetail = () => {
       flash('注文が完了しました')
       navigate('/orders')
     },
+    onError: (error) => flash(error.message),
   })
 
   if (!Number.isFinite(id)) {
@@ -164,7 +165,11 @@ export const ProductDetail = () => {
               onClick={() =>
                 order({
                   customer_id: 'guest',
-                  items: [{ inventory_id: detail.id, quantity: qty }],
+                  items: [{
+                    inventory_id: detail.id,
+                    quantity: qty,
+                    expected_unit_price: detail.price,
+                  }],
                 })
               }
             >

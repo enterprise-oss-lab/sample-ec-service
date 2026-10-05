@@ -28,6 +28,23 @@ class KafkaProducerPort(ABC):
     ) -> None: ...
 
 
+class ProductCatalogPort(ABC):
+    @abstractmethod
+    async def get_unit_price(self, inventory_id: int) -> int: ...
+
+
+class ProductNotFoundError(Exception):
+    pass
+
+
+class CatalogUnavailableError(Exception):
+    pass
+
+
+class PriceChangedError(Exception):
+    pass
+
+
 class ReservationResult:
     def __init__(self, correlation_id: str, success: bool, error: str = "") -> None:
         self.correlation_id = correlation_id
@@ -36,9 +53,15 @@ class ReservationResult:
 
 
 class OrderUsecase:
-    def __init__(self, repo: OrderRepository, producer: KafkaProducerPort) -> None:
+    def __init__(
+        self,
+        repo: OrderRepository,
+        producer: KafkaProducerPort,
+        catalog: ProductCatalogPort,
+    ) -> None:
         self._repo = repo
         self._producer = producer
+        self._catalog = catalog
 
     async def create_order(
         self,
@@ -50,13 +73,31 @@ class OrderUsecase:
         for item in items:
             if item.quantity <= 0:
                 raise ValueError("quantity must be greater than 0")
+            if item.unit_price_at_order < 0:
+                raise ValueError("expected_unit_price must be greater than or equal to 0")
+
+        priced_items = []
+        for item in items:
+            current_price = await self._catalog.get_unit_price(item.inventory_id)
+            if current_price != item.unit_price_at_order:
+                raise PriceChangedError(
+                    f"price changed for product {item.inventory_id}: "
+                    f"expected {item.unit_price_at_order}, current {current_price}"
+                )
+            priced_items.append(
+                OrderItem(
+                    inventory_id=item.inventory_id,
+                    quantity=item.quantity,
+                    unit_price_at_order=current_price,
+                )
+            )
 
         order_id = str(uuid.uuid4())
         now = datetime.now(timezone.utc)
         order = Order(
             id=order_id,
             customer_id=customer_id,
-            items=items,
+            items=priced_items,
             status=OrderStatus.PENDING,
             correlation_id=order_id,
             created_at=now,
@@ -68,7 +109,7 @@ class OrderUsecase:
         # Publish one reservation request per item. For simplicity, this sample
         # uses the first item's inventory_id and quantity for the correlation key.
         # A production system would track per-item correlation.
-        first_item = items[0]
+        first_item = priced_items[0]
         await self._producer.publish_reservation_request(
             correlation_id=order_id,
             inventory_id=first_item.inventory_id,

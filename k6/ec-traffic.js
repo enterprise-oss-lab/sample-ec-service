@@ -166,6 +166,15 @@ function createOrder(oversell) {
   if (Math.random() < 0.3) {
     items.push({ inventory_id: pick(INVENTORY_IDS), quantity: randInt(1, 2) });
   }
+  for (const item of items) {
+    const product = http.get(`${INVENTORY_URL}/products/${item.inventory_id}`, {
+      tags: { endpoint: 'GET /products/{id}' },
+    });
+    if (product.status !== 200) {
+      return;
+    }
+    item.expected_unit_price = product.json('price');
+  }
   const payload = JSON.stringify({ customer_id: `user-${randInt(1, 500)}`, items });
 
   const res = http.post(`${ORDER_URL}/orders`, payload, {

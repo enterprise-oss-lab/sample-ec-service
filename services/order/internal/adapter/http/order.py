@@ -2,7 +2,12 @@ from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel
 
 from internal.domain.order import InvalidStatusTransitionError, NotFoundError, OrderItem
-from internal.usecase.order import OrderUsecase
+from internal.usecase.order import (
+    CatalogUnavailableError,
+    OrderUsecase,
+    PriceChangedError,
+    ProductNotFoundError,
+)
 
 router = APIRouter(prefix="/orders")
 
@@ -10,6 +15,7 @@ router = APIRouter(prefix="/orders")
 class OrderItemRequest(BaseModel):
     inventory_id: int
     quantity: int
+    expected_unit_price: int
 
 
 class CreateOrderRequest(BaseModel):
@@ -20,6 +26,7 @@ class CreateOrderRequest(BaseModel):
 class OrderItemResponse(BaseModel):
     inventory_id: int
     quantity: int
+    unit_price_at_order: int
 
 
 class OrderResponse(BaseModel):
@@ -46,10 +53,23 @@ def create_router(usecase: OrderUsecase) -> APIRouter:
         try:
             order = await usecase.create_order(
                 customer_id=req.customer_id,
-                items=[OrderItem(inventory_id=i.inventory_id, quantity=i.quantity) for i in req.items],
+                items=[
+                    OrderItem(
+                        inventory_id=i.inventory_id,
+                        quantity=i.quantity,
+                        unit_price_at_order=i.expected_unit_price,
+                    )
+                    for i in req.items
+                ],
             )
         except ValueError as exc:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+        except ProductNotFoundError as exc:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+        except PriceChangedError as exc:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+        except CatalogUnavailableError as exc:
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
         return _to_response(order)
 
     @router.get("/{id}", response_model=OrderResponse)
@@ -76,7 +96,14 @@ def _to_response(order) -> OrderResponse:
     return OrderResponse(
         id=order.id,
         customer_id=order.customer_id,
-        items=[OrderItemResponse(inventory_id=i.inventory_id, quantity=i.quantity) for i in order.items],
+        items=[
+            OrderItemResponse(
+                inventory_id=i.inventory_id,
+                quantity=i.quantity,
+                unit_price_at_order=i.unit_price_at_order,
+            )
+            for i in order.items
+        ],
         status=order.status.value,
         correlation_id=order.correlation_id,
         created_at=order.created_at.isoformat(),

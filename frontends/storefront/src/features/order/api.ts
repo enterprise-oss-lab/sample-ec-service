@@ -3,6 +3,7 @@ const ORDER_API_BASE_URL = import.meta.env.VITE_ORDER_API_BASE_URL ?? ''
 export type OrderItem = {
   inventory_id: number
   quantity: number
+  unit_price_at_order: number
 }
 
 export type Order = {
@@ -17,7 +18,7 @@ export type Order = {
 
 export type CreateOrderRequest = {
   customer_id: string
-  items: { inventory_id: number; quantity: number }[]
+  items: { inventory_id: number; quantity: number; expected_unit_price: number }[]
 }
 
 export async function fetchOrders(): Promise<Order[]> {
@@ -34,5 +35,8 @@ export async function createOrder(req: CreateOrderRequest): Promise<void> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(req),
   })
-  if (!res.ok) throw new Error('Failed to create order')
+  if (res.status === 409) {
+    throw new Error('価格が変更されました。商品を再読み込みして確認してください')
+  }
+  if (!res.ok) throw new Error('注文に失敗しました')
 }

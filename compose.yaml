@@ -206,12 +206,15 @@ services:
         condition: service_healthy
       otel-lgtm:
         condition: service_started
+      inventory:
+        condition: service_started
     environment:
       DATABASE_URL: postgresql://order:password@order-db:5432/order  # pragma: allowlist secret
       KAFKA_BROKERS: kafka:9092
       KAFKA_REQUEST_TOPIC: inventory.reservation.requests
       KAFKA_RESULT_TOPIC: inventory.reservation.results
       KAFKA_CONSUMER_GROUP: order-service
+      INVENTORY_BASE_URL: http://inventory:8080
       CORS_ORIGINS: http://localhost:3001
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-lgtm:4317
       OTEL_EXPORTER_OTLP_PROTOCOL: grpc
