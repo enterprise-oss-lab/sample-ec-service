@@ -9,7 +9,10 @@ beforeAll(() => server.listen())
 afterEach(() => server.resetHandlers())
 afterAll(() => server.close())
 
-const testReq = { customer_id: 'guest', items: [{ inventory_id: 1, quantity: 1 }] }
+const testReq = {
+  customer_id: 'guest',
+  items: [{ inventory_id: 1, quantity: 1, expected_unit_price: 1200 }],
+}
 
 describe('useCreateOrder', () => {
   it('mutate() で createOrder が実行される', async () => {

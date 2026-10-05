@@ -13,6 +13,7 @@ from opentelemetry.sdk._logs import LoggingHandler
 
 from config.config import Settings
 from internal.adapter.http.order import create_router
+from internal.adapter.http.product_catalog import InventoryProductCatalog
 from internal.adapter.kafka.consumer import KafkaResultConsumer
 from internal.adapter.kafka.producer import KafkaReservationProducer
 from internal.repository.postgres.order import PostgresOrderRepository
@@ -44,7 +45,8 @@ async def run() -> None:
         brokers=cfg.kafka.brokers,
         topic=cfg.kafka.request_topic,
     )
-    usecase = OrderUsecase(repo=repo, producer=producer)
+    catalog = InventoryProductCatalog(cfg.inventory_base_url)
+    usecase = OrderUsecase(repo=repo, producer=producer, catalog=catalog)
     consumer = KafkaResultConsumer(
         brokers=cfg.kafka.brokers,
         topic=cfg.kafka.result_topic,
@@ -74,6 +76,7 @@ async def run() -> None:
         )
     finally:
         producer.close()
+        await catalog.close()
         await pool.close()
         shutdown_telemetry()
 

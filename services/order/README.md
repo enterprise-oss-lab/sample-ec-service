@@ -56,6 +56,7 @@ PENDING ─→ CONFIRMED   (在庫予約成功)
 | `KAFKA_REQUEST_TOPIC` | `inventory.reservation.requests` | 予約リクエストトピック |
 | `KAFKA_RESULT_TOPIC` | `inventory.reservation.results` | 予約結果トピック |
 | `KAFKA_CONSUMER_GROUP` | `order-service` | コンシューマグループ ID |
+| `INVENTORY_BASE_URL` | `http://localhost:18081` | 商品価格を検証する Inventory Service の URL |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | (未設定) | OTLP エクスポート先 (例 `http://otel-lgtm:4317`)。未設定ならローカルの既定 `localhost:4317` |
 | `OTEL_EXPORTER_OTLP_PROTOCOL` | `grpc` | OTLP プロトコル |
 | `OTEL_SERVICE_NAME` | (未設定) | トレース/メトリクス/ログの service.name (compose では `order`) |
@@ -108,7 +109,7 @@ inventory.reservation.results
 ```bash
 curl -s -X POST http://localhost:8081/orders \
   -H "Content-Type: application/json" \
-  -d '{"customer_id": "user-123", "items": [{"inventory_id": 1, "quantity": 2}]}' | jq .
+  -d '{"customer_id": "user-123", "items": [{"inventory_id": 1, "quantity": 2, "expected_unit_price": 1200}]}' | jq .
 ```
 
 レスポンス:
@@ -117,7 +118,7 @@ curl -s -X POST http://localhost:8081/orders \
 {
   "id": "a1b2c3d4-...",
   "customer_id": "user-123",
-  "items": [{ "inventory_id": 1, "quantity": 2 }],
+  "items": [{ "inventory_id": 1, "quantity": 2, "unit_price_at_order": 1200 }],
   "status": "pending",
   "correlation_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
   "created_at": "2025-05-01T12:00:00+00:00",
@@ -126,6 +127,8 @@ curl -s -X POST http://localhost:8081/orders \
 ```
 
 注文は `pending` 状態で作成され、Kafka に在庫予約リクエストが publish される。
+
+`expected_unit_price` は購入者に表示した商品価格で、Order Service が Inventory Service の現在価格と照合する。価格が変わっていれば `409 Conflict` を返し、一致すれば `unit_price_at_order` として注文時点の単価を固定する。現在は税計算と値引きの仕組みがないため、単価は税区分を持たない `products.price` と同じ整数円（表示価格、値引き前）として扱う。
 
 ### 4. Kafka メッセージを確認する
 

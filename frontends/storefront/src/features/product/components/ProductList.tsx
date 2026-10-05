@@ -43,6 +43,7 @@ export const ProductList = () => {
       flash('注文が完了しました')
       navigate('/orders')
     },
+    onError: (error) => flash(error.message),
   })
   const [quantities, setQuantities] = useState<Record<number, number>>({})
 
@@ -149,7 +150,11 @@ export const ProductList = () => {
                   onClick={() =>
                     order({
                       customer_id: 'guest',
-                      items: [{ inventory_id: product.id, quantity: qty }],
+                      items: [{
+                        inventory_id: product.id,
+                        quantity: qty,
+                        expected_unit_price: product.price,
+                      }],
                     })
                   }
                 >
