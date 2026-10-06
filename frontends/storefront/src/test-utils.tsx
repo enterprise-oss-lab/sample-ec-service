@@ -1,8 +1,14 @@
 import { type ReactNode } from 'react'
-import { render, type RenderOptions, renderHook, type RenderHookOptions } from '@testing-library/react'
+import {
+  render,
+  type RenderOptions,
+  renderHook,
+  type RenderHookOptions,
+} from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router'
 import { FlashProvider, Flash } from '@/shared/Flash'
+import { AuthProvider } from '@/auth/context'
 
 function createWrapper(initialEntries: string[] = ['/']) {
   const queryClient = new QueryClient({
@@ -15,8 +21,12 @@ function createWrapper(initialEntries: string[] = ['/']) {
     return (
       <QueryClientProvider client={queryClient}>
         <FlashProvider>
-          <Flash />
-          <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
+          <MemoryRouter initialEntries={initialEntries}>
+            <AuthProvider>
+              <Flash />
+              {children}
+            </AuthProvider>
+          </MemoryRouter>
         </FlashProvider>
       </QueryClientProvider>
     )
@@ -30,7 +40,10 @@ export function renderWithProviders(
   options?: Omit<RenderOptions, 'wrapper'> & { initialEntries?: string[] },
 ) {
   const { initialEntries, ...renderOptions } = options ?? {}
-  return render(ui, { wrapper: createWrapper(initialEntries), ...renderOptions })
+  return render(ui, {
+    wrapper: createWrapper(initialEntries),
+    ...renderOptions,
+  })
 }
 
 export function renderHookWithProviders<T>(
@@ -38,6 +51,17 @@ export function renderHookWithProviders<T>(
   options?: Omit<RenderHookOptions<unknown>, 'wrapper'>,
 ) {
   return renderHook(hook, { wrapper: createWrapper(), ...options })
+}
+
+export function authenticateForTest() {
+  sessionStorage.setItem(
+    'sample-ec.storefront.session',
+    JSON.stringify({
+      accessToken: 'test-access-token',
+      expiresAt: Date.now() + 60_000,
+      profile: { roles: ['customer'] },
+    }),
+  )
 }
 
 export * from '@testing-library/react'
