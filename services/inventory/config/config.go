@@ -28,13 +28,14 @@ type RedisConfig struct {
 }
 
 type Config struct {
-	DatabaseURL          string
-	Port                 string
-	CORSOrigins          []string
-	Kafka                KafkaConfig
-	RustFS               RustFSConfig
-	Redis                RedisConfig
-	MediaAssetPendingTTL time.Duration
+	DatabaseURL            string
+	Port                   string
+	CORSOrigins            []string
+	Kafka                  KafkaConfig
+	RustFS                 RustFSConfig
+	Redis                  RedisConfig
+	MediaAssetPendingTTL   time.Duration
+	ZitadelBootstrapConfig string
 }
 
 func Load() Config {
@@ -130,8 +131,16 @@ func Load() Config {
 			Password: os.Getenv("REDIS_PASSWORD"),
 			DB:       0,
 		},
-		MediaAssetPendingTTL: mediaAssetPendingTTL,
+		MediaAssetPendingTTL:   mediaAssetPendingTTL,
+		ZitadelBootstrapConfig: valueOrDefault("ZITADEL_BOOTSTRAP_CONFIG", "/zitadel/bootstrap/sample-ec-oidc.json"),
 	}
+}
+
+func valueOrDefault(key, fallback string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return fallback
 }
 
 func splitAndTrim(s, sep string) []string {
