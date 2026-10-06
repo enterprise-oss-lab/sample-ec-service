@@ -1,4 +1,10 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from 'react'
 import { useLocation, useNavigate } from 'react-router'
 
 import { callback, login, logout, refresh, session, type Session } from './oidc'
@@ -77,8 +83,13 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
     return (
       <main className="mx-auto max-w-xl space-y-4 p-10">
         <h1 className="text-xl text-pale">在庫管理へログイン</h1>
-        <p className="text-soft">管理画面を開くにはZITADELでログインしてください。</p>
-        <button className="rounded bg-sage px-4 py-2 text-white" onClick={() => void login()}>
+        <p className="text-soft">
+          管理画面を開くにはZITADELでログインしてください。
+        </p>
+        <button
+          className="rounded bg-sage px-4 py-2 text-white"
+          onClick={() => void login()}
+        >
           ログイン
         </button>
         <p className="text-sm text-dim">開発用: ec-admin / EcAdminOne1!</p>
@@ -97,7 +108,10 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
         現在のアカウントには管理画面へのアクセス権がありません。ZITADEL
         からログアウトして、管理者アカウントでログインし直してください。
       </p>
-      <button className="rounded bg-sage px-4 py-2 text-white" onClick={() => void logout()}>
+      <button
+        className="rounded bg-sage px-4 py-2 text-white"
+        onClick={() => void logout()}
+      >
         別のアカウントでログイン
       </button>
     </main>

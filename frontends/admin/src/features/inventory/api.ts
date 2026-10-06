@@ -49,7 +49,8 @@ export async function fetchInventories(): Promise<Inventory[]> {
     fetch(`${INVENTORY_API_BASE_URL}/products`),
     fetch(`${INVENTORY_API_BASE_URL}/inventories`),
   ])
-  if (!productsRes.ok || !stocksRes.ok) throw new Error('Failed to fetch inventories')
+  if (!productsRes.ok || !stocksRes.ok)
+    throw new Error('Failed to fetch inventories')
   const products: ProductResponse[] = await productsRes.json()
   const stocks: StockResponse[] = await stocksRes.json()
   const stockByID = new Map(stocks.map((stock) => [stock.id, stock]))
@@ -64,18 +65,25 @@ export async function fetchInventory(id: number): Promise<Inventory> {
     fetch(`${INVENTORY_API_BASE_URL}/products/${id}`),
     fetch(`${INVENTORY_API_BASE_URL}/inventories/${id}`),
   ])
-  if (!productRes.ok || !stockRes.ok) throw new Error('Failed to fetch inventory')
+  if (!productRes.ok || !stockRes.ok)
+    throw new Error('Failed to fetch inventory')
   return combine(await productRes.json(), await stockRes.json())
 }
 
 export async function adjustStock(id: number, delta: number): Promise<void> {
-  const res = await fetch(`${INVENTORY_API_BASE_URL}/admin/inventories/${id}/adjust`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...header() },
-    body: JSON.stringify({ delta }),
-  })
+  const res = await fetch(
+    `${INVENTORY_API_BASE_URL}/admin/inventories/${id}/adjust`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...header() },
+      body: JSON.stringify({ delta }),
+    },
+  )
   if (!res.ok) {
-    if (res.status === 401 || res.status === 403) window.dispatchEvent(new CustomEvent('sample-ec:auth-error', { detail: res.status }))
+    if (res.status === 401 || res.status === 403)
+      window.dispatchEvent(
+        new CustomEvent('sample-ec:auth-error', { detail: res.status }),
+      )
     const body = await res.json().catch(() => null)
     throw new Error(body?.error ?? 'Failed to adjust stock')
   }
@@ -96,37 +104,52 @@ export type UpdateProductRequest = {
   image_key: string | null
 }
 
-async function parseErrorMessage(res: Response, fallback: string): Promise<string> {
-  if (res.status === 401 || res.status === 403) window.dispatchEvent(new CustomEvent('sample-ec:auth-error', { detail: res.status }))
+async function parseErrorMessage(
+  res: Response,
+  fallback: string,
+): Promise<string> {
+  if (res.status === 401 || res.status === 403)
+    window.dispatchEvent(
+      new CustomEvent('sample-ec:auth-error', { detail: res.status }),
+    )
   const body = await res.json().catch(() => null)
   return body?.error ?? fallback
 }
 
-export async function createProduct(req: CreateProductRequest): Promise<Inventory> {
+export async function createProduct(
+  req: CreateProductRequest,
+): Promise<Inventory> {
   const res = await fetch(`${INVENTORY_API_BASE_URL}/admin/inventories`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...header() },
     body: JSON.stringify(req),
   })
-  if (!res.ok) throw new Error(await parseErrorMessage(res, 'Failed to create product'))
+  if (!res.ok)
+    throw new Error(await parseErrorMessage(res, 'Failed to create product'))
   const item: InventoryResponse = await res.json()
   return toInventory(item)
 }
 
-export async function updateProduct(id: number, req: UpdateProductRequest): Promise<Inventory> {
+export async function updateProduct(
+  id: number,
+  req: UpdateProductRequest,
+): Promise<Inventory> {
   const res = await fetch(`${INVENTORY_API_BASE_URL}/admin/inventories/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...header() },
     body: JSON.stringify(req),
   })
-  if (!res.ok) throw new Error(await parseErrorMessage(res, 'Failed to update product'))
+  if (!res.ok)
+    throw new Error(await parseErrorMessage(res, 'Failed to update product'))
   const item: InventoryResponse = await res.json()
   return toInventory(item)
 }
 
 export async function deleteProduct(id: number): Promise<void> {
   const res = await fetch(`${INVENTORY_API_BASE_URL}/admin/inventories/${id}`, {
-    method: 'DELETE', headers: header(),
+    method: 'DELETE',
+    headers: header(),
   })
-  if (!res.ok) throw new Error(await parseErrorMessage(res, 'Failed to delete product'))
+  if (!res.ok)
+    throw new Error(await parseErrorMessage(res, 'Failed to delete product'))
 }

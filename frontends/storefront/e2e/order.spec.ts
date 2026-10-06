@@ -26,11 +26,14 @@ const mockOrders = [
 test.describe('注文履歴ページ', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
-      sessionStorage.setItem('sample-ec.storefront.session', JSON.stringify({
-        accessToken: 'test-customer-token',
-        expiresAt: Date.now() + 60 * 60 * 1000,
-        profile: { roles: ['customer'] },
-      }))
+      sessionStorage.setItem(
+        'sample-ec.storefront.session',
+        JSON.stringify({
+          accessToken: 'test-customer-token',
+          expiresAt: Date.now() + 60 * 60 * 1000,
+          profile: { roles: ['customer'] },
+        }),
+      )
     })
   })
 

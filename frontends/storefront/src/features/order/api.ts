@@ -25,7 +25,13 @@ export async function fetchOrders(): Promise<Order[]> {
   const res = await fetch(`${ORDER_API_BASE_URL}/orders`, {
     headers: { accept: 'application/json', ...authorizationHeader() },
   })
-  if (!res.ok) { if (res.status === 401 || res.status === 403) window.dispatchEvent(new CustomEvent('sample-ec:auth-error', { detail: res.status })); throw new Error('Failed to fetch orders') }
+  if (!res.ok) {
+    if (res.status === 401 || res.status === 403)
+      window.dispatchEvent(
+        new CustomEvent('sample-ec:auth-error', { detail: res.status }),
+      )
+    throw new Error('Failed to fetch orders')
+  }
   return res.json()
 }
 
@@ -35,5 +41,11 @@ export async function createOrder(req: CreateOrderRequest): Promise<void> {
     headers: { 'Content-Type': 'application/json', ...authorizationHeader() },
     body: JSON.stringify(req),
   })
-  if (!res.ok) { if (res.status === 401 || res.status === 403) window.dispatchEvent(new CustomEvent('sample-ec:auth-error', { detail: res.status })); throw new Error('Failed to create order') }
+  if (!res.ok) {
+    if (res.status === 401 || res.status === 403)
+      window.dispatchEvent(
+        new CustomEvent('sample-ec:auth-error', { detail: res.status }),
+      )
+    throw new Error('Failed to create order')
+  }
 }

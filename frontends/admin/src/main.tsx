@@ -28,12 +28,24 @@ createRoot(document.getElementById('root')!).render(
         <BrowserRouter>
           <AuthProvider>
             <Routes>
-              <Route element={<RequireAdmin><Layout /></RequireAdmin>}>
+              <Route
+                element={
+                  <RequireAdmin>
+                    <Layout />
+                  </RequireAdmin>
+                }
+              >
                 <Route path="/" element={<InventoryListPage />} />
                 <Route path="/products/new" element={<ProductNewPage />} />
-                <Route path="/products/:id/edit" element={<ProductEditPage />} />
+                <Route
+                  path="/products/:id/edit"
+                  element={<ProductEditPage />}
+                />
               </Route>
-              <Route path="/auth/callback" element={<p className="p-8">ログイン中...</p>} />
+              <Route
+                path="/auth/callback"
+                element={<p className="p-8">ログイン中...</p>}
+              />
             </Routes>
           </AuthProvider>
         </BrowserRouter>

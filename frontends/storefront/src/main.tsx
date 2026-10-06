@@ -36,10 +36,20 @@ createRoot(document.getElementById('root')!).render(
               <Route path="/" element={<HomePage />} />
               <Route path="/products" element={<ProductPage />} />
               <Route path="/products/:id" element={<ProductDetailPage />} />
-              <Route path="/orders" element={<RequireAuth><OrderPage /></RequireAuth>} />
+              <Route
+                path="/orders"
+                element={
+                  <RequireAuth>
+                    <OrderPage />
+                  </RequireAuth>
+                }
+              />
               <Route path="/account" element={<AccountPage />} />
               <Route path="/cart" element={<CartPage />} />
-              <Route path="/auth/callback" element={<p className="p-8">ログイン中...</p>} />
+              <Route
+                path="/auth/callback"
+                element={<p className="p-8">ログイン中...</p>}
+              />
             </Routes>
           </AuthProvider>
         </BrowserRouter>

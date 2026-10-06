@@ -18,10 +18,13 @@ describe('fetchOrders', () => {
         updated_at: '2024-01-01T00:00:00Z',
       },
     ]
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockOrders),
-    }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockOrders),
+      }),
+    )
 
     const orders = await fetchOrders()
 
