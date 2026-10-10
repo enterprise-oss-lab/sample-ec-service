@@ -136,6 +136,7 @@ services:
       # API permissions. The login client token is intentionally not used here.
       ZITADEL_PAT_FILE: /zitadel/bootstrap/admin.pat
       ZITADEL_BOOTSTRAP_DIR: /zitadel/bootstrap
+      ZITADEL_ENV_FILE: /workspace/.env
       ZITADEL_STOREFRONT_REDIRECT_URI: http://localhost:3001/auth/callback
       ZITADEL_STOREFRONT_LOGOUT_URI: http://localhost:3001/
       ZITADEL_ADMIN_REDIRECT_URI: http://localhost:3002/auth/callback
@@ -153,6 +154,7 @@ services:
     entrypoint: ["node", "/app/zitadel-init.mjs"]
     volumes:
       - ./infrastructure/zitadel/zitadel-init.mjs:/app/zitadel-init.mjs:ro
+      - ./.env:/workspace/.env
       - zitadel-bootstrap:/zitadel/bootstrap:rw
     networks:
       - zitadel
@@ -317,6 +319,7 @@ services:
       KAFKA_RESULT_TOPIC: inventory.reservation.results
       KAFKA_CONSUMER_GROUP: inventory-service
       CORS_ORIGINS: http://localhost:3001,http://localhost:3002
+      ZITADEL_BOOTSTRAP_CONFIG: /zitadel/bootstrap/sample-ec-oidc.json
       RUSTFS_ENDPOINT: http://rustfs:9000
       RUSTFS_REGION: us-east-1
       RUSTFS_BUCKET: products
@@ -339,6 +342,13 @@ services:
         condition: service_started
       rustfs-init:
         condition: service_completed_successfully
+      zitadel-init:
+        condition: service_completed_successfully
+    volumes:
+      - zitadel-bootstrap:/zitadel/bootstrap:ro
+    networks:
+      - default
+      - zitadel
 
   order-db:
     image: postgres:17-alpine
@@ -368,6 +378,8 @@ services:
         condition: service_healthy
       otel-lgtm:
         condition: service_started
+      zitadel-init:
+        condition: service_completed_successfully
     environment:
       DATABASE_URL: postgresql://order:password@order-db:5432/order  # pragma: allowlist secret
       KAFKA_BROKERS: kafka:9092
@@ -375,12 +387,18 @@ services:
       KAFKA_RESULT_TOPIC: inventory.reservation.results
       KAFKA_CONSUMER_GROUP: order-service
       CORS_ORIGINS: http://localhost:3001
+      ZITADEL_BOOTSTRAP_CONFIG: /zitadel/bootstrap/sample-ec-oidc.json
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-lgtm:4317
       OTEL_EXPORTER_OTLP_PROTOCOL: grpc
       OTEL_SERVICE_NAME: order
       OTEL_RESOURCE_ATTRIBUTES: service.namespace=sample-ec,deployment.environment=local
     ports:
       - "8081:8080"
+    volumes:
+      - zitadel-bootstrap:/zitadel/bootstrap:ro
+    networks:
+      - default
+      - zitadel
 
   storefront:
     build:

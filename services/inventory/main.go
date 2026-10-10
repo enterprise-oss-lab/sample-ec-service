@@ -21,6 +21,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/runtime"
 
 	"enterprise-oss-lab/sample-ec-service/inventry/config"
+	"enterprise-oss-lab/sample-ec-service/inventry/internal/adapter/auth"
 	httphandler "enterprise-oss-lab/sample-ec-service/inventry/internal/adapter/http"
 	kafkaadapter "enterprise-oss-lab/sample-ec-service/inventry/internal/adapter/kafka"
 	"enterprise-oss-lab/sample-ec-service/inventry/internal/adapter/storage"
@@ -148,9 +149,16 @@ func main() {
 		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders: []string{"Content-Type", "Authorization"},
 	}))
-	h.RegisterRoutes(r)
+	validator, err := auth.NewValidator(cfg.ZitadelBootstrapConfig)
+	if err != nil {
+		logger.ErrorContext(ctx, "failed to configure ZITADEL token validation", "error", err)
+		os.Exit(1)
+	}
+	admin := r.Group("/admin")
+	admin.Use(validator.RequireAdmin())
+	h.RegisterRoutes(r, admin)
 	httphandler.NewProductHandler(productUC).RegisterRoutes(r)
-	httphandler.NewMediaAssetHandler(mediaAssetUC).RegisterRoutes(r)
+	httphandler.NewMediaAssetHandler(mediaAssetUC).RegisterRoutes(admin)
 
 	addr := ":" + cfg.Port
 	srv := &http.Server{Addr: addr, Handler: r}

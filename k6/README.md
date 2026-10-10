@@ -22,12 +22,21 @@
 既定の接続先はリポジトリの `compose.yaml` のホストポートに一致します:
 `order = http://localhost:8081` / `inventory = http://localhost:18081`。
 
+認証が必要なため、k6 サービスアカウントの client ID と `.env` の
+`ZITADEL_K6_CLIENT_SECRET` を渡す。client ID は起動後に bootstrap volume の
+`sample-ec-oidc.json` に保存される `k6ClientId` を使用する。
+初期化処理は ZITADEL が生成した client secret をローカルの `.env` に更新するため、
+Compose 起動後の値を使う。
+
 ## 実行
 
 リポジトリのルートから:
 
 ```bash
-k6 run k6/ec-traffic.js
+k6 run \
+  -e OIDC_CLIENT_ID='<sample-ec-oidc.json の k6ClientId>' \
+  -e OIDC_CLIENT_SECRET="$ZITADEL_K6_CLIENT_SECRET" \
+  k6/ec-traffic.js
 ```
 
 総尺は約 11 分 (ramp up → sustain → 緩やかなスパイク → ramp down)。途中で止めたいときは `Ctrl-C`。
@@ -60,7 +69,7 @@ k6 run -e BROWSE_RPS=20 -e PURCHASE_RPS=8 -e RESTOCK_RPS=3 k6/ec-traffic.js
     `failed` + 在庫予約 **failure**
   - ~8% **不正 body** (空 items / 数量 0) → **422**
   - 作成後、時々注文詳細を閲覧、まれにキャンセル (pending なら `cancelled` 遷移)
-- **restock** — `POST /inventories/{id}/restock` で在庫を継続補充。正常注文の成功予約で在庫が
+- **restock** — admin 権限付きの `POST /admin/inventories/{id}/adjust` で在庫を継続補充。正常注文の成功予約で在庫が
   減り続けるため、これが無いと数分で在庫が枯渇し、以降すべて `failed` になってしまいます。
   意図的な在庫超過失敗 (12%) とは独立に、「適度なエラー率」を保つための仕組みです。
 

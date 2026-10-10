@@ -20,10 +20,14 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Counter, Trend } from 'k6/metrics';
+import encoding from 'k6/encoding';
 
 // --- 設定 (環境変数で上書き可。既定は compose のホストポートに一致) ---
 const ORDER_URL = (__ENV.ORDER_URL || 'http://localhost:8081').replace(/\/+$/, '');
 const INVENTORY_URL = (__ENV.INVENTORY_URL || 'http://localhost:18081').replace(/\/+$/, '');
+const OIDC_TOKEN_URL = __ENV.OIDC_TOKEN_URL || 'http://localhost:8080/oauth/v2/token';
+const OIDC_CLIENT_ID = __ENV.OIDC_CLIENT_ID;
+const OIDC_CLIENT_SECRET = __ENV.OIDC_CLIENT_SECRET;
 
 const BROWSE_RPS = Number(__ENV.BROWSE_RPS || 12); // 閲覧のピーク到着レート (req/s)
 const PURCHASE_RPS = Number(__ENV.PURCHASE_RPS || 4); // 注文のピーク到着レート (req/s)
@@ -54,6 +58,21 @@ function pick(arr) {
 }
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
+
+function authenticated(data, options = {}) {
+  return { ...options, headers: { ...JSON_HEADERS, Authorization: `Bearer ${data.accessToken}`, ...(options.headers || {}) } };
+}
+
+function fetchAccessToken() {
+  if (!OIDC_CLIENT_ID || !OIDC_CLIENT_SECRET) throw new Error('OIDC_CLIENT_ID and OIDC_CLIENT_SECRET are required');
+  const response = http.post(OIDC_TOKEN_URL, 'grant_type=client_credentials&scope=openid', {
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', Authorization: `Basic ${encoding.b64encode(`${OIDC_CLIENT_ID}:${OIDC_CLIENT_SECRET}`)}` },
+    tags: { endpoint: 'POST /oauth/v2/token' },
+  });
+  const accessToken = response.json('access_token');
+  if (response.status !== 200 || !accessToken) throw new Error(`failed to get access token (status=${response.status})`);
+  return accessToken;
+}
 
 export const options = {
   setupTimeout: '30s',
@@ -111,18 +130,20 @@ export const options = {
 
 // 起動確認: 両サービスに疎通しているか軽くチェックし、落ちていれば警告する。
 export function setup() {
+  const accessToken = fetchAccessToken();
   const inv = http.get(`${INVENTORY_URL}/inventories`, { tags: { endpoint: 'GET /inventories' } });
-  const ord = http.get(`${ORDER_URL}/orders`, { tags: { endpoint: 'GET /orders' } });
+  const ord = http.get(`${ORDER_URL}/orders`, authenticated({ accessToken }, { tags: { endpoint: 'GET /orders' } }));
   if (inv.status !== 200) {
     console.warn(`inventory (${INVENTORY_URL}) に疎通できません (status=${inv.status})。docker compose の起動を確認してください。`);
   }
   if (ord.status !== 200) {
     console.warn(`order (${ORDER_URL}) に疎通できません (status=${ord.status})。docker compose の起動を確認してください。`);
   }
+  return { accessToken };
 }
 
 // 閲覧セッション: 一覧 → 商品詳細 (時々 404) → 時々 注文履歴。
-export function browse() {
+export function browse(data) {
   let res = http.get(`${INVENTORY_URL}/inventories`, { tags: { endpoint: 'GET /inventories' } });
   check(res, { 'list inventories 200': (r) => r.status === 200 });
   sleep(randInt(3, 9) / 10); // 0.3〜0.9s の think time
@@ -142,23 +163,23 @@ export function browse() {
   sleep(randInt(3, 12) / 10);
 
   if (Math.random() < 0.4) {
-    res = http.get(`${ORDER_URL}/orders`, { tags: { endpoint: 'GET /orders' } });
+    res = http.get(`${ORDER_URL}/orders`, authenticated(data, { tags: { endpoint: 'GET /orders' } }));
     check(res, { 'list orders 200': (r) => r.status === 200 });
   }
 }
 
 // 購入: 重み付きで正常 / 在庫超過 / 不正body に分岐。
-export function purchase() {
+export function purchase(data) {
   const r = Math.random();
   if (r < 0.08) {
-    createInvalidOrder(); // ~8%: 422
+    createInvalidOrder(data); // ~8%: 422
     return;
   }
   const oversell = r < 0.2; // ~12%: 在庫超過 (0.08〜0.20)
-  createOrder(oversell);
+  createOrder(data, oversell);
 }
 
-function createOrder(oversell) {
+function createOrder(data, oversell) {
   const items = [
     { inventory_id: pick(INVENTORY_IDS), quantity: oversell ? OVERSELL_QTY : randInt(1, 3) },
   ];
@@ -166,12 +187,11 @@ function createOrder(oversell) {
   if (Math.random() < 0.3) {
     items.push({ inventory_id: pick(INVENTORY_IDS), quantity: randInt(1, 2) });
   }
-  const payload = JSON.stringify({ customer_id: `user-${randInt(1, 500)}`, items });
+  const payload = JSON.stringify({ items });
 
-  const res = http.post(`${ORDER_URL}/orders`, payload, {
-    headers: JSON_HEADERS,
+  const res = http.post(`${ORDER_URL}/orders`, payload, authenticated(data, {
     tags: { endpoint: 'POST /orders' },
-  });
+  }));
   orderCreateLatency.add(res.timings.duration);
   const ok = check(res, { 'create order 201': (r) => r.status === 201 });
   if (!ok) {
@@ -192,32 +212,31 @@ function createOrder(oversell) {
 
   // 作成直後の確認 (注文詳細の閲覧)
   if (Math.random() < 0.6) {
-    const got = http.get(`${ORDER_URL}/orders/${orderId}`, { tags: { endpoint: 'GET /orders/{id}' } });
+    const got = http.get(`${ORDER_URL}/orders/${orderId}`, authenticated(data, { tags: { endpoint: 'GET /orders/{id}' } }));
     check(got, { 'get order 200': (r) => r.status === 200 });
   }
 
   // まれにキャンセル。pending のうちなら 204 (cancelled 遷移)、既に confirmed 済みなら 422。
   if (!oversell && Math.random() < 0.1) {
-    const cancelled = http.post(`${ORDER_URL}/orders/${orderId}/cancel`, null, {
+    const cancelled = http.post(`${ORDER_URL}/orders/${orderId}/cancel`, null, authenticated(data, {
       tags: { endpoint: 'POST /orders/{id}/cancel', intended_error: 'true' },
       responseCallback: http.expectedStatuses(204, 422),
-    });
+    }));
     check(cancelled, { 'cancel 204/422': (r) => r.status === 204 || r.status === 422 });
   }
 }
 
-function createInvalidOrder() {
+function createInvalidOrder(data) {
   // 空 items もしくは quantity<=0 → FastAPI/ドメインバリデーションで 422
   const bad =
     Math.random() < 0.5
-      ? { customer_id: `user-${randInt(1, 500)}`, items: [] }
-      : { customer_id: `user-${randInt(1, 500)}`, items: [{ inventory_id: pick(INVENTORY_IDS), quantity: 0 }] };
+      ? { items: [] }
+      : { items: [{ inventory_id: pick(INVENTORY_IDS), quantity: 0 }] };
 
-  const res = http.post(`${ORDER_URL}/orders`, JSON.stringify(bad), {
-    headers: JSON_HEADERS,
+  const res = http.post(`${ORDER_URL}/orders`, JSON.stringify(bad), authenticated(data, {
     tags: { endpoint: 'POST /orders', intended_error: 'true' },
     responseCallback: http.expectedStatuses(422),
-  });
+  }));
   const ok = check(res, { 'invalid order 422': (r) => r.status === 422 });
   if (ok) {
     ordersRejected422.add(1);
@@ -225,12 +244,8 @@ function createInvalidOrder() {
 }
 
 // 在庫補充: 成功予約で減った在庫を継続的に戻す。pgx DB オペレーションパネルにも寄与。
-export function restock() {
+export function restock(data) {
   const id = pick(INVENTORY_IDS);
-  const payload = JSON.stringify({ quantity: randInt(30, 80) });
-  const res = http.post(`${INVENTORY_URL}/inventories/${id}/restock`, payload, {
-    headers: JSON_HEADERS,
-    tags: { endpoint: 'POST /inventories/{id}/restock' },
-  });
+  const res = http.post(`${INVENTORY_URL}/admin/inventories/${id}/adjust`, JSON.stringify({ delta: randInt(30, 80) }), authenticated(data, { tags: { endpoint: 'POST /admin/inventories/{id}/adjust' } }));
   check(res, { 'restock 204': (r) => r.status === 204 });
 }

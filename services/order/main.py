@@ -53,6 +53,7 @@ async def run() -> None:
     )
 
     app = FastAPI(title="Order Service")
+    app.state.zitadel_bootstrap_config = cfg.zitadel_bootstrap_config
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[o.strip() for o in cfg.cors_origins.split(",") if o.strip()],
