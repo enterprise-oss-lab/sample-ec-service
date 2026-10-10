@@ -27,6 +27,7 @@ internal/
 | Method | Path | 説明 |
 |--------|------|------|
 | `POST` | `/orders` | 注文作成 (201) |
+| `GET` | `/orders` | 自分の注文一覧 |
 | `GET` | `/orders/{id}` | 注文取得 |
 | `POST` | `/orders/{id}/cancel` | 注文キャンセル (204) |
 
@@ -107,8 +108,9 @@ inventory.reservation.results
 
 ```bash
 curl -s -X POST http://localhost:8081/orders \
+  -H "Authorization: Bearer <Storefront access token>" \
   -H "Content-Type: application/json" \
-  -d '{"customer_id": "user-123", "items": [{"inventory_id": 1, "quantity": 2}]}' | jq .
+  -d '{"items": [{"inventory_id": 1, "quantity": 2}]}' | jq .
 ```
 
 レスポンス:

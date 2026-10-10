@@ -52,13 +52,14 @@ curl http://localhost:8080/inventories/1
 
 商品名などのカタログ属性は含まない (下の「カタログ参照」参照)。
 
-### HTTP 経由で在庫引き当て
+### 管理 API
+
+在庫の直接予約・補充APIは外部公開していない。補充は `admin` ロール付きトークンで `POST /admin/inventories/:id/adjust` を使う。
 
 ```bash
-curl -X POST http://localhost:8080/inventories/1/reserve \
-  -H "Content-Type: application/json" \
-  -d '{"quantity": 5}'
-# → 204 No Content
+curl -X POST http://localhost:18081/admin/inventories/1/adjust \
+  -H "Authorization: Bearer <Admin access token>" \
+  -H "Content-Type: application/json" -d '{"delta": 5}'
 ```
 
 ### カタログ参照
