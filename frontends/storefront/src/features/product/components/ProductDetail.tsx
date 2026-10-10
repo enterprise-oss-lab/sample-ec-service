@@ -4,19 +4,36 @@ import { useProduct } from '../hooks/useProduct'
 import { useStock } from '../hooks/useStock'
 import { useCreateOrder } from '../../order/hooks/useCreateOrder'
 import { useFlash } from '@/shared/Flash'
+import { useAuth } from '@/auth/context'
 
 const ImageFallback = () => (
   <div className="w-full aspect-square bg-sage-light/30 flex items-center justify-center">
     <svg viewBox="0 0 80 80" className="w-20 h-20 opacity-25">
-      <rect x="20" y="20" width="40" height="40" rx="4" fill="none" stroke="#6b8c72" strokeWidth="1.5" />
+      <rect
+        x="20"
+        y="20"
+        width="40"
+        height="40"
+        rx="4"
+        fill="none"
+        stroke="#6b8c72"
+        strokeWidth="1.5"
+      />
       <circle cx="32" cy="32" r="5" fill="#6b8c72" opacity="0.4" />
-      <path d="M20 52 L32 40 L42 50 L52 38 L60 48 L60 60 L20 60 Z" fill="#6b8c72" opacity="0.2" />
+      <path
+        d="M20 52 L32 40 L42 50 L52 38 L60 48 L60 60 L20 60 Z"
+        fill="#6b8c72"
+        opacity="0.2"
+      />
     </svg>
   </div>
 )
 
 const BackLink = () => (
-  <Link to="/products" className="text-[0.8rem] text-dim hover:text-sage transition-colors duration-150">
+  <Link
+    to="/products"
+    className="text-[0.8rem] text-dim hover:text-sage transition-colors duration-150"
+  >
     ← 商品一覧に戻る
   </Link>
 )
@@ -32,8 +49,10 @@ export const ProductDetail = () => {
   const id = Number(useParams().id)
   const navigate = useNavigate()
   const { flash } = useFlash()
+  const { session, login } = useAuth()
   const [imageFailed, setImageFailed] = useState(false)
   const [qty, setQty] = useState(1)
+  const [showLoginRequired, setShowLoginRequired] = useState(false)
 
   // カタログと在庫は別クエリ。staleTime が違う (api.ts のコメント参照) ため、
   // 1本にまとめてしまうとカタログを長く寝かせられなくなる。
@@ -154,28 +173,52 @@ export const ProductDetail = () => {
                 </button>
               </div>
             )}
-            <button
-              className={`w-full py-2.5 text-[0.85rem] rounded border transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-40 bg-transparent
-                ${outOfStock || stockUnknown || isOrdering
-                  ? 'border-border text-dim'
-                  : 'border-sage text-sage hover:bg-sage-light/40'
-                }`}
-              disabled={isOrdering || outOfStock || stockUnknown}
-              onClick={() =>
-                order({
-                  customer_id: 'guest',
-                  items: [{ inventory_id: detail.id, quantity: qty }],
-                })
-              }
-            >
-              {isOrdering
-                ? '注文中...'
-                : outOfStock
-                  ? '在庫なし'
-                  : stockUnknown
-                    ? '在庫を確認中...'
-                    : '注文する'}
-            </button>
+            <div className="relative">
+              <button
+                className={`w-full py-2.5 text-[0.85rem] rounded border transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-40 bg-transparent
+                  ${
+                    outOfStock || stockUnknown || isOrdering
+                      ? 'border-border text-dim'
+                      : 'border-sage text-sage hover:bg-sage-light/40'
+                  }`}
+                disabled={isOrdering || outOfStock || stockUnknown}
+                aria-describedby={!session ? 'login-required' : undefined}
+                onMouseEnter={() => {
+                  if (!session) setShowLoginRequired(true)
+                }}
+                onMouseLeave={() => setShowLoginRequired(false)}
+                onFocus={() => {
+                  if (!session) setShowLoginRequired(true)
+                }}
+                onBlur={() => setShowLoginRequired(false)}
+                onClick={() => {
+                  if (!session) {
+                    void login()
+                    return
+                  }
+                  order({
+                    items: [{ inventory_id: detail.id, quantity: qty }],
+                  })
+                }}
+              >
+                {isOrdering
+                  ? '注文中...'
+                  : outOfStock
+                    ? '在庫なし'
+                    : stockUnknown
+                      ? '在庫を確認中...'
+                      : '注文する'}
+              </button>
+              {!session && showLoginRequired && (
+                <div
+                  id="login-required"
+                  role="tooltip"
+                  className="absolute bottom-full left-1/2 z-10 mb-2 w-max max-w-[calc(100vw-3rem)] -translate-x-1/2 rounded bg-pale px-3 py-2 text-xs text-white shadow-lg"
+                >
+                  注文にはログインが必要です
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

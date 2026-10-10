@@ -17,6 +17,7 @@ import { InventoryListPage } from './pages/InventoryList/index.tsx'
 import { ProductNewPage } from './pages/ProductNew/index.tsx'
 import { ProductEditPage } from './pages/ProductEdit/index.tsx'
 import './index.css'
+import { AuthProvider, RequireAdmin } from './auth/context.tsx'
 
 const queryClient = new QueryClient()
 
@@ -25,13 +26,28 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <FlashProvider>
         <BrowserRouter>
-          <Routes>
-            <Route element={<Layout />}>
-              <Route path="/" element={<InventoryListPage />} />
-              <Route path="/products/new" element={<ProductNewPage />} />
-              <Route path="/products/:id/edit" element={<ProductEditPage />} />
-            </Route>
-          </Routes>
+          <AuthProvider>
+            <Routes>
+              <Route
+                element={
+                  <RequireAdmin>
+                    <Layout />
+                  </RequireAdmin>
+                }
+              >
+                <Route path="/" element={<InventoryListPage />} />
+                <Route path="/products/new" element={<ProductNewPage />} />
+                <Route
+                  path="/products/:id/edit"
+                  element={<ProductEditPage />}
+                />
+              </Route>
+              <Route
+                path="/auth/callback"
+                element={<p className="p-8">ログイン中...</p>}
+              />
+            </Routes>
+          </AuthProvider>
         </BrowserRouter>
       </FlashProvider>
     </QueryClientProvider>

@@ -1,9 +1,17 @@
-import { describe, it, expect, vi, beforeAll, afterAll, afterEach } from 'vitest'
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  beforeAll,
+  afterAll,
+  afterEach,
+} from 'vitest'
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { server } from '@/mocks/server'
-import { renderWithProviders } from '@/test-utils'
+import { authenticateForTest, renderWithProviders } from '@/test-utils'
 import { ProductList } from './ProductList'
 
 const mockNavigate = vi.fn()
@@ -41,8 +49,12 @@ describe('ProductList', () => {
     await renderAndWait()
 
     const items = screen.getAllByRole('listitem')
-    const productAItem = items.find((item) => item.textContent?.includes('Product A'))!
-    const img = within(productAItem).getByRole('img', { name: 'Product A' }) as HTMLImageElement
+    const productAItem = items.find((item) =>
+      item.textContent?.includes('Product A'),
+    )!
+    const img = within(productAItem).getByRole('img', {
+      name: 'Product A',
+    }) as HTMLImageElement
 
     expect(img.src).toContain('products/product-a.jpg')
   })
@@ -51,7 +63,9 @@ describe('ProductList', () => {
     await renderAndWait()
 
     const items = screen.getAllByRole('listitem')
-    const outOfStockItem = items.find((item) => item.textContent?.includes('Out of Stock'))!
+    const outOfStockItem = items.find((item) =>
+      item.textContent?.includes('Out of Stock'),
+    )!
 
     expect(within(outOfStockItem).queryByRole('img')).not.toBeInTheDocument()
   })
@@ -60,7 +74,9 @@ describe('ProductList', () => {
     await renderAndWait()
 
     const items = screen.getAllByRole('listitem')
-    const productAItem = items.find((item) => item.textContent?.includes('Product A'))!
+    const productAItem = items.find((item) =>
+      item.textContent?.includes('Product A'),
+    )!
     const img = within(productAItem).getByRole('img', { name: 'Product A' })
 
     img.dispatchEvent(new Event('error'))
@@ -85,8 +101,12 @@ describe('ProductList', () => {
     await renderAndWait()
 
     const items = screen.getAllByRole('listitem')
-    const productAItem = items.find((item) => item.textContent?.includes('Product A'))!
-    const input = within(productAItem).getByRole('spinbutton') as HTMLInputElement
+    const productAItem = items.find((item) =>
+      item.textContent?.includes('Product A'),
+    )!
+    const input = within(productAItem).getByRole(
+      'spinbutton',
+    ) as HTMLInputElement
     const plusBtn = within(productAItem).getByText('＋')
 
     expect(input.value).toBe('1')
@@ -99,8 +119,12 @@ describe('ProductList', () => {
     await renderAndWait()
 
     const items = screen.getAllByRole('listitem')
-    const productAItem = items.find((item) => item.textContent?.includes('Product A'))!
-    const input = within(productAItem).getByRole('spinbutton') as HTMLInputElement
+    const productAItem = items.find((item) =>
+      item.textContent?.includes('Product A'),
+    )!
+    const input = within(productAItem).getByRole(
+      'spinbutton',
+    ) as HTMLInputElement
     const minusBtn = within(productAItem).getByText('−')
     const plusBtn = within(productAItem).getByText('＋')
 
@@ -116,19 +140,28 @@ describe('ProductList', () => {
     await renderAndWait()
 
     const items = screen.getAllByRole('listitem')
-    const outOfStockItem = items.find((item) => item.textContent?.includes('Out of Stock'))!
-    const orderBtn = within(outOfStockItem).getByRole('button', { name: '在庫なし' })
+    const outOfStockItem = items.find((item) =>
+      item.textContent?.includes('Out of Stock'),
+    )!
+    const orderBtn = within(outOfStockItem).getByRole('button', {
+      name: '在庫なし',
+    })
 
     expect(orderBtn).toBeDisabled()
   })
 
   it('「注文する」クリックで createOrder が呼ばれる', async () => {
     const user = userEvent.setup()
+    authenticateForTest()
     await renderAndWait()
 
     const items = screen.getAllByRole('listitem')
-    const productAItem = items.find((item) => item.textContent?.includes('Product A'))!
-    const orderBtn = within(productAItem).getByRole('button', { name: '注文する' })
+    const productAItem = items.find((item) =>
+      item.textContent?.includes('Product A'),
+    )!
+    const orderBtn = within(productAItem).getByRole('button', {
+      name: '注文する',
+    })
 
     await user.click(orderBtn)
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/orders'))
@@ -136,16 +169,36 @@ describe('ProductList', () => {
 
   it('注文成功後に flash メッセージが表示されて /orders に遷移する', async () => {
     const user = userEvent.setup()
+    authenticateForTest()
     await renderAndWait()
 
     const items = screen.getAllByRole('listitem')
-    const productAItem = items.find((item) => item.textContent?.includes('Product A'))!
-    const orderBtn = within(productAItem).getByRole('button', { name: '注文する' })
+    const productAItem = items.find((item) =>
+      item.textContent?.includes('Product A'),
+    )!
+    const orderBtn = within(productAItem).getByRole('button', {
+      name: '注文する',
+    })
 
     await user.click(orderBtn)
     await waitFor(() =>
       expect(screen.getByText('注文が完了しました')).toBeInTheDocument(),
     )
     expect(mockNavigate).toHaveBeenCalledWith('/orders')
+  })
+
+  it('未ログインで注文ボタンをホバーするとログインを促すポップアップを表示する', async () => {
+    const user = userEvent.setup()
+    await renderAndWait()
+
+    const productAItem = screen
+      .getAllByRole('listitem')
+      .find((item) => item.textContent?.includes('Product A'))!
+    await user.hover(
+      within(productAItem).getByRole('button', { name: '注文する' }),
+    )
+
+    expect(screen.getByText('注文にはログインが必要です')).toBeInTheDocument()
+    expect(mockNavigate).not.toHaveBeenCalled()
   })
 })

@@ -3,13 +3,31 @@ import { test, expect } from '@playwright/test'
 const INVENTORY_API = 'http://localhost:18081'
 
 let inventories = [
-  { id: 1, name: 'Product A', count: 5, price: 1000, description: '説明A', image_key: null, created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-01T00:00:00Z' },
+  {
+    id: 1,
+    name: 'Product A',
+    count: 5,
+    price: 1000,
+    description: '説明A',
+    image_key: null,
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-01T00:00:00Z',
+  },
 ]
 
 test.describe('商品作成', () => {
   test.beforeEach(async ({ page }) => {
     inventories = [
-      { id: 1, name: 'Product A', count: 5, price: 1000, description: '説明A', image_key: null, created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-01T00:00:00Z' },
+      {
+        id: 1,
+        name: 'Product A',
+        count: 5,
+        price: 1000,
+        description: '説明A',
+        image_key: null,
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
+      },
     ]
 
     await page.route(`${INVENTORY_API}/inventories`, (route) => {
@@ -19,15 +37,25 @@ test.describe('商品作成', () => {
     })
     await page.route(`${INVENTORY_API}/products`, (route) => {
       route.fulfill({
-        json: inventories.map(({ id, name, price, description, image_key, created_at, updated_at }) => ({
-          id,
-          name,
-          price,
-          description,
-          image_key,
-          created_at,
-          updated_at,
-        })),
+        json: inventories.map(
+          ({
+            id,
+            name,
+            price,
+            description,
+            image_key,
+            created_at,
+            updated_at,
+          }) => ({
+            id,
+            name,
+            price,
+            description,
+            image_key,
+            created_at,
+            updated_at,
+          }),
+        ),
       })
     })
     await page.route(`${INVENTORY_API}/admin/inventories`, (route) => {
@@ -48,6 +76,16 @@ test.describe('商品作成', () => {
       } else {
         route.continue()
       }
+    })
+    await page.addInitScript(() => {
+      sessionStorage.setItem(
+        'sample-ec.admin.session',
+        JSON.stringify({
+          accessToken: 'test-admin-token',
+          expiresAt: Date.now() + 60 * 60 * 1000,
+          roles: ['admin'],
+        }),
+      )
     })
   })
 
