@@ -10,7 +10,13 @@ from internal.domain.order import (
     OrderItem,
     OrderStatus,
 )
-from internal.usecase.order import KafkaProducerPort, OrderUsecase, ReservationResult
+from internal.usecase.order import (
+    KafkaProducerPort,
+    OrderUsecase,
+    PriceChangedError,
+    ProductCatalogPort,
+    ReservationResult,
+)
 
 
 def make_pending_order(order_id: str = "order-1") -> Order:
@@ -18,7 +24,7 @@ def make_pending_order(order_id: str = "order-1") -> Order:
     return Order(
         id=order_id,
         customer_id="customer-1",
-        items=[OrderItem(inventory_id=1, quantity=2)],
+        items=[OrderItem(inventory_id=1, quantity=2, unit_price_at_order=1000)],
         status=OrderStatus.PENDING,
         correlation_id=order_id,
         created_at=now,
@@ -26,12 +32,15 @@ def make_pending_order(order_id: str = "order-1") -> Order:
     )
 
 
-def make_usecase(repo=None, producer=None) -> OrderUsecase:
+def make_usecase(repo=None, producer=None, catalog=None) -> OrderUsecase:
     if repo is None:
         repo = AsyncMock()
     if producer is None:
         producer = AsyncMock(spec=KafkaProducerPort)
-    return OrderUsecase(repo=repo, producer=producer)
+    if catalog is None:
+        catalog = AsyncMock(spec=ProductCatalogPort)
+        catalog.get_unit_price.return_value = 1000
+    return OrderUsecase(repo=repo, producer=producer, catalog=catalog)
 
 
 class TestCreateOrder:
@@ -42,11 +51,12 @@ class TestCreateOrder:
 
         order = await uc.create_order(
             customer_id="c1",
-            items=[OrderItem(inventory_id=1, quantity=3)],
+            items=[OrderItem(inventory_id=1, quantity=3, unit_price_at_order=1000)],
         )
 
         assert order.status == OrderStatus.PENDING
         assert order.customer_id == "c1"
+        assert order.items[0].unit_price_at_order == 1000
         repo.save.assert_awaited_once()
         producer.publish_reservation_request.assert_awaited_once_with(
             correlation_id=order.id,
@@ -62,7 +72,24 @@ class TestCreateOrder:
     async def test_zero_quantity_raises(self):
         uc = make_usecase()
         with pytest.raises(ValueError, match="quantity must be greater than 0"):
-            await uc.create_order(customer_id="c1", items=[OrderItem(inventory_id=1, quantity=0)])
+            await uc.create_order(
+                customer_id="c1",
+                items=[OrderItem(inventory_id=1, quantity=0, unit_price_at_order=1000)],
+            )
+
+    async def test_changed_price_rejects_before_saving(self):
+        repo = AsyncMock()
+        catalog = AsyncMock(spec=ProductCatalogPort)
+        catalog.get_unit_price.return_value = 1200
+        uc = make_usecase(repo=repo, catalog=catalog)
+
+        with pytest.raises(PriceChangedError, match="expected 1000, current 1200"):
+            await uc.create_order(
+                customer_id="c1",
+                items=[OrderItem(inventory_id=1, quantity=1, unit_price_at_order=1000)],
+            )
+
+        repo.save.assert_not_awaited()
 
 
 class TestListOrders:

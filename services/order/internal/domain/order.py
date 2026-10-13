@@ -26,6 +26,7 @@ class InvalidStatusTransitionError(OrderError):
 class OrderItem:
     inventory_id: int
     quantity: int
+    unit_price_at_order: int
 
 
 @dataclass

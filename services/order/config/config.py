@@ -18,4 +18,5 @@ class Settings(BaseSettings):
     kafka: KafkaSettings = Field(default_factory=KafkaSettings)
     # CORS 許可オリジン。カンマ区切りで複数指定可（例: dev の 5173 と compose の 3001）。
     cors_origins: str = "http://localhost:5173"
+    inventory_base_url: str = "http://localhost:18081"
     zitadel_bootstrap_config: str = "/zitadel/bootstrap/sample-ec-oidc.json"

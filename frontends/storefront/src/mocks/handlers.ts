@@ -49,7 +49,7 @@ export const handlers = [
       {
         id: 'order-1',
         customer_id: 'guest',
-        items: [{ inventory_id: 1, quantity: 2 }],
+        items: [{ inventory_id: 1, quantity: 2, unit_price_at_order: 1200 }],
         status: 'pending',
         correlation_id: 'corr-1',
         created_at: '2024-01-01T00:00:00Z',
@@ -58,7 +58,7 @@ export const handlers = [
       {
         id: 'order-2',
         customer_id: 'guest',
-        items: [{ inventory_id: 2, quantity: 1 }],
+        items: [{ inventory_id: 2, quantity: 1, unit_price_at_order: 3400 }],
         status: 'delivered',
         correlation_id: 'corr-2',
         created_at: '2024-01-02T00:00:00Z',

@@ -33,8 +33,11 @@ class PostgresOrderRepository(OrderRepository):
                     order.id,
                 )
                 await conn.executemany(
-                    "INSERT INTO order_items (order_id, inventory_id, quantity) VALUES ($1, $2, $3)",
-                    [(order.id, item.inventory_id, item.quantity) for item in order.items],
+                    "INSERT INTO order_items (order_id, inventory_id, quantity, unit_price_at_order) VALUES ($1, $2, $3, $4)",
+                    [
+                        (order.id, item.inventory_id, item.quantity, item.unit_price_at_order)
+                        for item in order.items
+                    ],
                 )
 
     async def find_by_id(self, id: str) -> Order:
@@ -89,13 +92,17 @@ class PostgresOrderRepository(OrderRepository):
     ) -> dict:
         """複数注文の order_items を1クエリで取得し、order_id ごとにまとめて返す。"""
         rows = await conn.fetch(
-            "SELECT order_id, inventory_id, quantity FROM order_items WHERE order_id = ANY($1::uuid[]) ORDER BY id",
+            "SELECT order_id, inventory_id, quantity, unit_price_at_order FROM order_items WHERE order_id = ANY($1::uuid[]) ORDER BY id",
             order_ids,
         )
         items_by_order: dict = {}
         for r in rows:
             items_by_order.setdefault(r["order_id"], []).append(
-                OrderItem(inventory_id=r["inventory_id"], quantity=r["quantity"])
+                OrderItem(
+                    inventory_id=r["inventory_id"],
+                    quantity=r["quantity"],
+                    unit_price_at_order=r["unit_price_at_order"],
+                )
             )
         return items_by_order
 

@@ -15,7 +15,7 @@ def make_order(status: OrderStatus = OrderStatus.PENDING) -> Order:
     return Order(
         id="order-1",
         customer_id="customer-1",
-        items=[OrderItem(inventory_id=1, quantity=2)],
+        items=[OrderItem(inventory_id=1, quantity=2, unit_price_at_order=1000)],
         status=status,
         correlation_id="order-1",
         created_at=now,

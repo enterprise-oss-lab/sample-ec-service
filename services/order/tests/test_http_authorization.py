@@ -14,7 +14,7 @@ class FakeOrderUsecase:
         self.order = Order(
             id="owner-order",
             customer_id="owner-subject",
-            items=[OrderItem(inventory_id=1, quantity=1)],
+            items=[OrderItem(inventory_id=1, quantity=1, unit_price_at_order=1200)],
             status=OrderStatus.PENDING,
             correlation_id="correlation-id",
             created_at=now,
@@ -70,7 +70,10 @@ def test_orders_are_scoped_to_authenticated_subject() -> None:
 def test_create_order_uses_authenticated_subject_not_request_body() -> None:
     client, usecase = client_for("owner-subject")
 
-    response = client.post("/orders", json={"items": [{"inventory_id": 1, "quantity": 1}]})
+    response = client.post(
+        "/orders",
+        json={"items": [{"inventory_id": 1, "quantity": 1, "expected_unit_price": 1200}]},
+    )
 
     assert response.status_code == 201
     assert usecase.created_customer_id == "owner-subject"
