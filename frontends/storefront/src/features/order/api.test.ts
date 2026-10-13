@@ -18,10 +18,13 @@ describe('fetchOrders', () => {
         updated_at: '2024-01-01T00:00:00Z',
       },
     ]
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockOrders),
-    }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockOrders),
+      }),
+    )
 
     const orders = await fetchOrders()
 
@@ -42,7 +45,9 @@ describe('createOrder', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }))
 
     await expect(
-      createOrder({ customer_id: 'guest', items: [{ inventory_id: 1, quantity: 1, expected_unit_price: 1200 }] }),
+      createOrder({
+        items: [{ inventory_id: 1, quantity: 1, expected_unit_price: 1200 }],
+      }),
     ).resolves.toBeUndefined()
   })
 
@@ -50,7 +55,9 @@ describe('createOrder', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
 
     await expect(
-      createOrder({ customer_id: 'guest', items: [{ inventory_id: 1, quantity: 1, expected_unit_price: 1200 }] }),
+      createOrder({
+        items: [{ inventory_id: 1, quantity: 1, expected_unit_price: 1200 }],
+      }),
     ).rejects.toThrow('注文に失敗しました')
   })
 
@@ -58,7 +65,9 @@ describe('createOrder', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 409 }))
 
     await expect(
-      createOrder({ customer_id: 'guest', items: [{ inventory_id: 1, quantity: 1, expected_unit_price: 1200 }] }),
+      createOrder({
+        items: [{ inventory_id: 1, quantity: 1, expected_unit_price: 1200 }],
+      }),
     ).rejects.toThrow('価格が変更されました。商品を再読み込みして確認してください')
   })
 })

@@ -3,8 +3,22 @@ import { test, expect } from '@playwright/test'
 const INVENTORY_API = 'http://localhost:18081'
 
 const mockInventories = [
-  { id: 1, name: 'Product A', count: 5, price: 1000, description: '素材にこだわった一品です', image_key: 'products/product-a.jpg' },
-  { id: 2, name: 'Out of Stock', count: 0, price: 2000, description: '定番のロングセラー商品', image_key: null },
+  {
+    id: 1,
+    name: 'Product A',
+    count: 5,
+    price: 1000,
+    description: '素材にこだわった一品です',
+    image_key: 'products/product-a.jpg',
+  },
+  {
+    id: 2,
+    name: 'Out of Stock',
+    count: 0,
+    price: 2000,
+    description: '定番のロングセラー商品',
+    image_key: null,
+  },
 ]
 
 // カタログは在庫とは別エンドポイント (更新頻度が違うため分離されている)
@@ -27,21 +41,43 @@ const mockProducts = [
 
 test.describe('商品一覧ページ', () => {
   test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      sessionStorage.setItem(
+        'sample-ec.storefront.session',
+        JSON.stringify({
+          accessToken: 'test-customer-token',
+          expiresAt: Date.now() + 60 * 60 * 1000,
+          profile: { roles: ['customer'] },
+        }),
+      )
+    })
     await page.route(`${INVENTORY_API}/inventories`, (route) => {
       route.fulfill({ json: mockInventories })
     })
     await page.route(`${INVENTORY_API}/inventories/*`, (route) => {
-      const id = Number(new URL(route.request().url()).pathname.split('/').pop())
+      const id = Number(
+        new URL(route.request().url()).pathname.split('/').pop(),
+      )
       const stock = mockInventories.find((i) => i.id === id)
-      route.fulfill(stock ? { json: stock } : { status: 404, json: { error: 'inventory not found' } })
+      route.fulfill(
+        stock
+          ? { json: stock }
+          : { status: 404, json: { error: 'inventory not found' } },
+      )
     })
     await page.route(`${INVENTORY_API}/products`, (route) => {
       route.fulfill({ json: mockProducts })
     })
     await page.route(`${INVENTORY_API}/products/*`, (route) => {
-      const id = Number(new URL(route.request().url()).pathname.split('/').pop())
+      const id = Number(
+        new URL(route.request().url()).pathname.split('/').pop(),
+      )
       const product = mockProducts.find((p) => p.id === id)
-      route.fulfill(product ? { json: product } : { status: 404, json: { error: 'product not found' } })
+      route.fulfill(
+        product
+          ? { json: product }
+          : { status: 404, json: { error: 'product not found' } },
+      )
     })
     await page.route('http://localhost:8081/orders', (route) => {
       if (route.request().method() === 'POST') {
@@ -78,7 +114,9 @@ test.describe('商品一覧ページ', () => {
     await expect(input).toHaveValue('1')
   })
 
-  test('「注文する」クリック後にフラッシュメッセージが表示される', async ({ page }) => {
+  test('「注文する」クリック後にフラッシュメッセージが表示される', async ({
+    page,
+  }) => {
     const listItems = page.locator('ul > li')
     const productAItem = listItems.filter({ hasText: 'Product A' }).first()
 
@@ -100,21 +138,35 @@ test.describe('商品一覧ページ', () => {
     const listItems = page.locator('ul > li')
     const outOfStockItem = listItems.filter({ hasText: 'Out of Stock' }).first()
 
-    await expect(outOfStockItem.getByRole('button', { name: '在庫なし' })).toBeDisabled()
+    await expect(
+      outOfStockItem.getByRole('button', { name: '在庫なし' }),
+    ).toBeDisabled()
   })
 })
 
 test.describe('商品詳細ページ', () => {
   test.beforeEach(async ({ page }) => {
     await page.route(`${INVENTORY_API}/products/*`, (route) => {
-      const id = Number(new URL(route.request().url()).pathname.split('/').pop())
+      const id = Number(
+        new URL(route.request().url()).pathname.split('/').pop(),
+      )
       const product = mockProducts.find((p) => p.id === id)
-      route.fulfill(product ? { json: product } : { status: 404, json: { error: 'product not found' } })
+      route.fulfill(
+        product
+          ? { json: product }
+          : { status: 404, json: { error: 'product not found' } },
+      )
     })
     await page.route(`${INVENTORY_API}/inventories/*`, (route) => {
-      const id = Number(new URL(route.request().url()).pathname.split('/').pop())
+      const id = Number(
+        new URL(route.request().url()).pathname.split('/').pop(),
+      )
       const stock = mockInventories.find((i) => i.id === id)
-      route.fulfill(stock ? { json: stock } : { status: 404, json: { error: 'inventory not found' } })
+      route.fulfill(
+        stock
+          ? { json: stock }
+          : { status: 404, json: { error: 'inventory not found' } },
+      )
     })
     await page.route('http://localhost:8081/orders', (route) => {
       if (route.request().method() === 'POST') {
