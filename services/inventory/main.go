@@ -119,14 +119,14 @@ func main() {
 		logger.ErrorContext(ctx, "failed to create kafka producer", "error", err)
 		os.Exit(1)
 	}
-	defer producer.Close()
+	defer func() { _ = producer.Close() }()
 
 	consumer, err := kafkaadapter.NewConsumer(cfg.Kafka.Brokers, cfg.Kafka.RequestTopic, cfg.Kafka.ConsumerGroup, uc, producer)
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to create kafka consumer", "error", err)
 		os.Exit(1)
 	}
-	defer consumer.Close()
+	defer func() { _ = consumer.Close() }()
 
 	runCtx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()

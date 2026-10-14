@@ -177,7 +177,7 @@ func (v *Validator) refreshKeys() error {
 	if err != nil {
 		return err
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode != http.StatusOK {
 		return fmt.Errorf("JWKS status %d", response.StatusCode)
 	}

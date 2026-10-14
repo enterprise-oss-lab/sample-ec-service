@@ -48,7 +48,7 @@ func (r *productRepository) Create(ctx context.Context, product *domain.Product,
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 	row := tx.QueryRow(ctx, `INSERT INTO products (name, description, price, image_key)
 		VALUES ($1, $2, $3, $4) RETURNING id, created_at, updated_at`,
 		product.Name, product.Description, product.Price, product.ImageKey)
@@ -71,7 +71,7 @@ func (r *productRepository) Update(ctx context.Context, product *domain.Product)
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	var currentImageKey *string
 	row := tx.QueryRow(ctx, `SELECT image_key FROM products WHERE id=$1 FOR UPDATE`, product.ID)
@@ -105,7 +105,7 @@ func (r *productRepository) Delete(ctx context.Context, id int) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 	if _, err := tx.Exec(ctx, `DELETE FROM inventories WHERE id=$1`, id); err != nil {
 		return err
 	}
