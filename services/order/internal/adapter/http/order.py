@@ -49,7 +49,9 @@ def create_router(usecase: OrderUsecase) -> APIRouter:
         return [_to_response(o) for o in orders]
 
     @router.post("", status_code=status.HTTP_201_CREATED, response_model=OrderResponse)
-    async def create_order(req: CreateOrderRequest, customer_id: str = Depends(current_subject)) -> OrderResponse:
+    async def create_order(
+        req: CreateOrderRequest, customer_id: str = Depends(current_subject)
+    ) -> OrderResponse:
         try:
             order = await usecase.create_order(
                 customer_id=customer_id,
@@ -63,36 +65,52 @@ def create_router(usecase: OrderUsecase) -> APIRouter:
                 ],
             )
         except ValueError as exc:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+            )
         except ProductNotFoundError as exc:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+            )
         except PriceChangedError as exc:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
         except CatalogUnavailableError as exc:
-            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)
+            )
         return _to_response(order)
 
     @router.get("/{id}", response_model=OrderResponse)
-    async def get_order(id: str, customer_id: str = Depends(current_subject)) -> OrderResponse:
+    async def get_order(
+        id: str, customer_id: str = Depends(current_subject)
+    ) -> OrderResponse:
         try:
             order = await usecase.get_order(id)
         except NotFoundError as exc:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
         if order.customer_id != customer_id:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="order not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="order not found"
+            )
         return _to_response(order)
 
     @router.post("/{id}/cancel", status_code=status.HTTP_204_NO_CONTENT)
-    async def cancel_order(id: str, customer_id: str = Depends(current_subject)) -> None:
+    async def cancel_order(
+        id: str, customer_id: str = Depends(current_subject)
+    ) -> None:
         try:
             order = await usecase.get_order(id)
             if order.customer_id != customer_id:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="order not found")
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND, detail="order not found"
+                )
             await usecase.cancel_order(id)
         except NotFoundError as exc:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
         except InvalidStatusTransitionError as exc:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+            )
 
     return router
 
