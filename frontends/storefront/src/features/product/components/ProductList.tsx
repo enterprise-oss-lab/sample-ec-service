@@ -1,11 +1,11 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router'
-import { useProducts } from '../hooks/useProducts'
-import { useStocks } from '../hooks/useStocks'
-import { useCreateOrder } from '../../order/hooks/useCreateOrder'
-import { useFlash } from '@/shared/Flash'
-import { useAuth } from '@/auth/context'
-import type { Product } from '../api'
+import { useState } from "react";
+import { Link, useNavigate } from "react-router";
+import { useProducts } from "../hooks/useProducts";
+import { useStocks } from "../hooks/useStocks";
+import { useCreateOrder } from "../../order/hooks/useCreateOrder";
+import { useFlash } from "@/shared/Flash";
+import { useAuth } from "@/auth/context";
+import type { Product } from "../api";
 
 const ProductPlaceholder = () => (
   <div className="w-full aspect-square bg-sage-light/30 flex items-center justify-center">
@@ -28,12 +28,12 @@ const ProductPlaceholder = () => (
       />
     </svg>
   </div>
-)
+);
 
 const ProductImage = ({ product }: { product: Product }) => {
-  const [failed, setFailed] = useState(false)
+  const [failed, setFailed] = useState(false);
 
-  if (!product.imageUrl || failed) return <ProductPlaceholder />
+  if (!product.imageUrl || failed) return <ProductPlaceholder />;
 
   return (
     <img
@@ -42,38 +42,38 @@ const ProductImage = ({ product }: { product: Product }) => {
       className="w-full aspect-square object-cover"
       onError={() => setFailed(true)}
     />
-  )
-}
+  );
+};
 
 export const ProductList = () => {
-  const navigate = useNavigate()
-  const { flash } = useFlash()
-  const { session, login } = useAuth()
+  const navigate = useNavigate();
+  const { flash } = useFlash();
+  const { session, login } = useAuth();
   // カタログと在庫は別クエリ。staleTime が違う (api.ts のコメント参照) ため、
   // 1本にまとめるとカタログを長く寝かせられなくなる。
   const {
     data: products,
     isPending: productsPending,
     isError: productsError,
-  } = useProducts()
+  } = useProducts();
   const {
     data: stocks,
     isPending: stocksPending,
     isError: stocksError,
-  } = useStocks()
+  } = useStocks();
   const {
     mutate: order,
     isPending: isOrdering,
     variables,
   } = useCreateOrder({
     onSuccess: () => {
-      flash('注文が完了しました')
-      navigate('/orders')
+      flash("注文が完了しました");
+      navigate("/orders");
     },
     onError: (error) => flash(error.message),
-  })
-  const [quantities, setQuantities] = useState<Record<number, number>>({})
-  const [hoveredOrderId, setHoveredOrderId] = useState<number | null>(null)
+  });
+  const [quantities, setQuantities] = useState<Record<number, number>>({});
+  const [hoveredOrderId, setHoveredOrderId] = useState<number | null>(null);
 
   if (productsPending || stocksPending)
     return (
@@ -92,29 +92,29 @@ export const ProductList = () => {
           </div>
         ))}
       </div>
-    )
+    );
 
   if (productsError || stocksError)
     return (
       <div className="py-16 text-center">
         <p className="text-dim text-sm">商品の取得に失敗しました</p>
       </div>
-    )
+    );
 
-  const getQty = (id: number) => quantities[id] ?? 1
+  const getQty = (id: number) => quantities[id] ?? 1;
   const setQty = (id: number, value: number) =>
-    setQuantities((prev) => ({ ...prev, [id]: value }))
+    setQuantities((prev) => ({ ...prev, [id]: value }));
 
-  const countById = new Map(stocks.map((s) => [s.id, s.count]))
+  const countById = new Map(stocks.map((s) => [s.id, s.count]));
 
   return (
     <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {products.map((product, i) => {
         const isThisOrdering =
-          isOrdering && variables?.items[0]?.inventory_id === product.id
-        const qty = getQty(product.id)
-        const count = countById.get(product.id) ?? 0
-        const outOfStock = count === 0
+          isOrdering && variables?.items[0]?.inventory_id === product.id;
+        const qty = getQty(product.id);
+        const count = countById.get(product.id) ?? 0;
+        const outOfStock = count === 0;
         return (
           <li
             key={product.id}
@@ -143,9 +143,9 @@ export const ProductList = () => {
                 </p>
               )}
               <p
-                className={`text-[0.75rem] mb-4 ${outOfStock ? 'text-red-400' : 'text-dim'}`}
+                className={`text-[0.75rem] mb-4 ${outOfStock ? "text-red-400" : "text-dim"}`}
               >
-                {outOfStock ? '在庫なし' : `在庫: ${count}点`}
+                {outOfStock ? "在庫なし" : `在庫: ${count}点`}
               </p>
 
               <div className="mt-auto space-y-2">
@@ -167,8 +167,8 @@ export const ProductList = () => {
                         const v = Math.min(
                           Math.max(1, Number(e.target.value)),
                           count,
-                        )
-                        setQty(product.id, isNaN(v) ? 1 : v)
+                        );
+                        setQty(product.id, isNaN(v) ? 1 : v);
                       }}
                       className="w-12 rounded border border-border bg-transparent text-center text-sm text-pale focus:outline-none focus:ring-1 focus:ring-sage/40 focus:border-sage/60 transition-colors duration-150"
                     />
@@ -186,40 +186,42 @@ export const ProductList = () => {
                     className={`w-full py-2 text-[0.8rem] rounded border transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-40 bg-transparent
                       ${
                         outOfStock || isThisOrdering
-                          ? 'border-border text-dim'
-                          : 'border-sage text-sage hover:bg-sage-light/40'
+                          ? "border-border text-dim"
+                          : "border-sage text-sage hover:bg-sage-light/40"
                       }`}
                     disabled={isThisOrdering || outOfStock}
                     aria-describedby={
                       !session ? `login-required-${product.id}` : undefined
                     }
                     onMouseEnter={() => {
-                      if (!session) setHoveredOrderId(product.id)
+                      if (!session) setHoveredOrderId(product.id);
                     }}
                     onMouseLeave={() => setHoveredOrderId(null)}
                     onFocus={() => {
-                      if (!session) setHoveredOrderId(product.id)
+                      if (!session) setHoveredOrderId(product.id);
                     }}
                     onBlur={() => setHoveredOrderId(null)}
                     onClick={() => {
                       if (!session) {
-                        void login()
-                        return
+                        void login();
+                        return;
                       }
                       order({
-                        items: [{
-                          inventory_id: product.id,
-                          quantity: qty,
-                          expected_unit_price: product.price,
-                        }],
-                      })
+                        items: [
+                          {
+                            inventory_id: product.id,
+                            quantity: qty,
+                            expected_unit_price: product.price,
+                          },
+                        ],
+                      });
                     }}
                   >
                     {isThisOrdering
-                      ? '注文中...'
+                      ? "注文中..."
                       : outOfStock
-                        ? '在庫なし'
-                        : '注文する'}
+                        ? "在庫なし"
+                        : "注文する"}
                   </button>
                   {!session && hoveredOrderId === product.id && (
                     <div
@@ -234,8 +236,8 @@ export const ProductList = () => {
               </div>
             </div>
           </li>
-        )
+        );
       })}
     </ul>
-  )
-}
+  );
+};
