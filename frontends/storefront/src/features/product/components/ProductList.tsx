@@ -7,7 +7,7 @@ import { useFlash } from '@/shared/Flash'
 import { useAuth } from '@/auth/context'
 import type { Product } from '../api'
 
-const ProductPlaceholder = (_: { id: number }) => (
+const ProductPlaceholder = () => (
   <div className="w-full aspect-square bg-sage-light/30 flex items-center justify-center">
     <svg viewBox="0 0 80 80" className="w-14 h-14 opacity-25">
       <rect
@@ -33,7 +33,7 @@ const ProductPlaceholder = (_: { id: number }) => (
 const ProductImage = ({ product }: { product: Product }) => {
   const [failed, setFailed] = useState(false)
 
-  if (!product.imageUrl || failed) return <ProductPlaceholder id={product.id} />
+  if (!product.imageUrl || failed) return <ProductPlaceholder />
 
   return (
     <img

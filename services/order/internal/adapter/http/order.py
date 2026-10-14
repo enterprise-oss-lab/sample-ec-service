@@ -1,14 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 
-from internal.domain.order import InvalidStatusTransitionError, NotFoundError, OrderItem
 from internal.adapter.http.auth import current_subject
+from internal.domain.order import InvalidStatusTransitionError, NotFoundError, OrderItem
 from internal.usecase.order import (
     CatalogUnavailableError,
     OrderUsecase,
     PriceChangedError,
     ProductNotFoundError,
 )
+
 
 class OrderItemRequest(BaseModel):
     inventory_id: int
