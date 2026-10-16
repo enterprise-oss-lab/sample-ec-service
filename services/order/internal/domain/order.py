@@ -27,6 +27,7 @@ class OrderItem:
     inventory_id: int
     quantity: int
     unit_price_at_order: int
+    id: int | None = None
 
 
 @dataclass
