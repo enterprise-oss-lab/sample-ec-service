@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 from opentelemetry import metrics
 
-from internal.domain.order import Order, OrderItem, OrderStatus
+from internal.domain.order import Order, OrderConfirmedEvent, OrderItem, OrderStatus
 from internal.domain.repository import OrderRepository
 
 logger = logging.getLogger(__name__)
@@ -148,7 +148,19 @@ class OrderUsecase:
             return
         if result.success:
             order.confirm()
+            if any(item.id is None for item in order.items):
+                raise ValueError("confirmed order items must have stable ids")
+            event = OrderConfirmedEvent(
+                event_id=str(uuid.uuid4()),
+                occurred_at=order.updated_at,
+                order_id=order.id,
+                items=order.items,
+            )
+            saved = await self._repo.save_confirmation(order, event)
+            if not saved:
+                logger.info("order %s was already confirmed", order.id)
+                return
         else:
             order.fail()
-        await self._repo.save(order)
+            await self._repo.save(order)
         _status_transitions.add(1, {"status": order.status.value})

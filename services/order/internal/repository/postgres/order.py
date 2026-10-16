@@ -1,8 +1,15 @@
+import json
 from datetime import timezone
 
 import asyncpg
 
-from internal.domain.order import NotFoundError, Order, OrderItem, OrderStatus
+from internal.domain.order import (
+    NotFoundError,
+    Order,
+    OrderConfirmedEvent,
+    OrderItem,
+    OrderStatus,
+)
 from internal.domain.repository import OrderRepository
 
 
@@ -47,6 +54,36 @@ class PostgresOrderRepository(OrderRepository):
                             for item in order.items
                         ],
                     )
+
+    async def save_confirmation(
+        self, order: Order, event: OrderConfirmedEvent
+    ) -> bool:
+        async with self._pool.acquire() as conn:
+            async with conn.transaction():
+                updated_id = await conn.fetchval(
+                    """
+                    UPDATE orders
+                    SET status = $2, updated_at = $3
+                    WHERE id = $1 AND status = 'pending'
+                    RETURNING id
+                    """,
+                    order.id,
+                    order.status.value,
+                    order.updated_at,
+                )
+                if updated_id is None:
+                    return False
+                await conn.execute(
+                    """
+                    INSERT INTO outbox_events (event_id, event_type, occurred_at, payload)
+                    VALUES ($1, $2, $3, $4::jsonb)
+                    """,
+                    event.event_id,
+                    "order_confirmed",
+                    event.occurred_at,
+                    json.dumps(event.payload()),
+                )
+                return True
 
     async def find_by_id(self, id: str) -> Order:
         async with self._pool.acquire() as conn:
