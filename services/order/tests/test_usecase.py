@@ -24,7 +24,7 @@ def make_pending_order(order_id: str = "order-1") -> Order:
     return Order(
         id=order_id,
         customer_id="customer-1",
-        items=[OrderItem(inventory_id=1, quantity=2, unit_price_at_order=1000)],
+        items=[OrderItem(inventory_id=1, quantity=2, unit_price_at_order=1000, id=1)],
         status=OrderStatus.PENDING,
         correlation_id=order_id,
         created_at=now,
@@ -169,7 +169,20 @@ class TestHandleReservationResult:
         )
 
         assert order.status == OrderStatus.CONFIRMED
-        repo.save.assert_awaited_once_with(order)
+        repo.save_confirmation.assert_awaited_once()
+        saved_order, event = repo.save_confirmation.await_args.args
+        assert saved_order is order
+        assert event.occurred_at == order.updated_at
+        assert event.payload()["items"] == [
+            {
+                "order_item_id": 1,
+                "inventory_id": 1,
+                "quantity": 2,
+                "unit_price_at_order": 1000,
+                "net_amount": 2000,
+            }
+        ]
+        uc._catalog.get_unit_price.assert_not_awaited()
 
     async def test_fails_order_on_failure(self):
         order = make_pending_order()
@@ -183,3 +196,16 @@ class TestHandleReservationResult:
 
         assert order.status == OrderStatus.FAILED
         repo.save.assert_awaited_once_with(order)
+
+    async def test_terminal_order_does_not_create_outbox_event(self):
+        order = make_pending_order()
+        order.confirm()
+        repo = AsyncMock()
+        repo.find_by_correlation_id.return_value = order
+        uc = make_usecase(repo=repo)
+
+        await uc.handle_reservation_result(
+            ReservationResult(correlation_id="order-1", success=True)
+        )
+
+        repo.save_confirmation.assert_not_awaited()
