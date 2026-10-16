@@ -1,24 +1,8 @@
-name: sample-ec-analytics
-
 services:
-  analytics-object-storage:
-    image: rustfs/rustfs:1.0.0-rc.4
-    ports:
-      - "127.0.0.1:19000:9000"
-      - "127.0.0.1:19001:9001"
-    volumes:
-      - analytics-object-data:/data
-    healthcheck:
-      test: ["CMD-SHELL", "curl -sf localhost:9000/minio/health/live || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
-      start_period: 10s
-
   analytics-object-storage-init:
     image: amazon/aws-cli:2.27.31
     depends_on:
-      analytics-object-storage:
+      rustfs:
         condition: service_healthy
     environment:
       AWS_ACCESS_KEY_ID: rustfsadmin
@@ -27,8 +11,8 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
-        aws --endpoint-url http://analytics-object-storage:9000 s3api head-bucket --bucket analytics 2>/dev/null ||
-          aws --endpoint-url http://analytics-object-storage:9000 s3api create-bucket --bucket analytics
+        aws --endpoint-url http://rustfs:9000 s3api head-bucket --bucket analytics 2>/dev/null ||
+          aws --endpoint-url http://rustfs:9000 s3api create-bucket --bucket analytics
     restart: "no"
 
   analytics-catalog-init:
@@ -53,7 +37,7 @@ services:
       CATALOG_WAREHOUSE: s3://analytics/
       CATALOG_URI: jdbc:sqlite:/var/lib/iceberg/catalog.db?journal_mode=WAL
       CATALOG_IO__IMPL: org.apache.iceberg.aws.s3.S3FileIO
-      CATALOG_S3_ENDPOINT: http://analytics-object-storage:9000
+      CATALOG_S3_ENDPOINT: http://rustfs:9000
       CATALOG_S3_PATH__STYLE__ACCESS: "true"
     ports:
       - "127.0.0.1:18181:8181"
@@ -75,7 +59,7 @@ services:
       - "127.0.0.1:${ANALYTICS_TRINO_PORT:-28080}:8080"
     volumes:
       - ./analytics/trino/catalog:/etc/trino/catalog:ro
-      - ./analytics/trino/bootstrap.sql:/opt/analytics/bootstrap.sql:ro
+      - ./analytics/trino/smoke.sql:/opt/analytics/smoke.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "curl --fail --silent http://localhost:8080/v1/info >/dev/null"]
       interval: 5s
@@ -84,5 +68,5 @@ services:
       start_period: 20s
 
 volumes:
-  analytics-object-data:
   analytics-catalog-data:
+    name: sample-ec-analytics-catalog-data
