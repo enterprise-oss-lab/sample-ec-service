@@ -4,58 +4,65 @@ import {
   useEffect,
   useState,
   type ReactNode,
-} from 'react'
-import { useLocation, useNavigate } from 'react-router'
+} from "react";
+import { useLocation, useNavigate } from "react-router";
 
-import { callback, login, logout, refresh, session, type Session } from './oidc'
-import { useFlash } from '@/shared/Flash'
+import {
+  callback,
+  login,
+  logout,
+  refresh,
+  session,
+  type Session,
+} from "./oidc";
+import { useFlash } from "@/shared/Flash";
 
 const Context = createContext<{
-  session: Session | null
-  login: () => Promise<void>
-  logout: () => Promise<void>
-} | null>(null)
+  session: Session | null;
+  login: () => Promise<void>;
+  logout: () => Promise<void>;
+} | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [current, setCurrent] = useState<Session | null>(() => session())
-  const location = useLocation()
-  const navigate = useNavigate()
-  const { flash } = useFlash()
+  const [current, setCurrent] = useState<Session | null>(() => session());
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { flash } = useFlash();
 
   useEffect(() => {
-    if (location.pathname !== '/auth/callback') return
+    if (location.pathname !== "/auth/callback") return;
 
     callback()
       .then((to) => {
-        setCurrent(session())
-        navigate(to, { replace: true })
+        setCurrent(session());
+        navigate(to, { replace: true });
       })
-      .catch(() => navigate('/?login_error=1', { replace: true }))
-  }, [location.pathname, navigate])
+      .catch(() => navigate("/?login_error=1", { replace: true }));
+  }, [location.pathname, navigate]);
 
   useEffect(() => {
     const id = window.setInterval(() => {
-      void refresh().then(setCurrent)
-    }, 30_000)
+      void refresh().then(setCurrent);
+    }, 30_000);
 
-    return () => window.clearInterval(id)
-  }, [])
+    return () => window.clearInterval(id);
+  }, []);
 
   useEffect(() => {
     const onError = (event: Event) => {
-      const status = (event as CustomEvent<number>).detail
+      const status = (event as CustomEvent<number>).detail;
 
       if (status === 401) {
-        flash('セッションが切れました。再ログインしてください。', 'error')
-        void login(`${location.pathname}${location.search}`)
+        flash("セッションが切れました。再ログインしてください。", "error");
+        void login(`${location.pathname}${location.search}`);
       } else if (status === 403) {
-        flash('管理者権限が必要です。', 'error')
+        flash("管理者権限が必要です。", "error");
       }
-    }
+    };
 
-    window.addEventListener('sample-ec:auth-error', onError)
-    return () => window.removeEventListener('sample-ec:auth-error', onError)
-  }, [flash, location.pathname, location.search])
+    window.addEventListener("sample-ec:auth-error", onError);
+    return () => window.removeEventListener("sample-ec:auth-error", onError);
+  }, [flash, location.pathname, location.search]);
 
   return (
     <Context.Provider
@@ -67,17 +74,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     >
       {children}
     </Context.Provider>
-  )
+  );
 }
 
 export function useAuth() {
-  const value = useContext(Context)
-  if (!value) throw new Error('useAuth must be used within AuthProvider')
-  return value
+  const value = useContext(Context);
+  if (!value) throw new Error("useAuth must be used within AuthProvider");
+  return value;
 }
 
 export function RequireAdmin({ children }: { children: ReactNode }) {
-  const { session, login, logout } = useAuth()
+  const { session, login, logout } = useAuth();
 
   if (!session) {
     return (
@@ -94,11 +101,11 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
         </button>
         <p className="text-sm text-dim">開発用: ec-admin / EcAdminOne1!</p>
       </main>
-    )
+    );
   }
 
-  if (session.roles.includes('admin')) {
-    return <>{children}</>
+  if (session.roles.includes("admin")) {
+    return <>{children}</>;
   }
 
   return (
@@ -115,5 +122,5 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
         別のアカウントでログイン
       </button>
     </main>
-  )
+  );
 }

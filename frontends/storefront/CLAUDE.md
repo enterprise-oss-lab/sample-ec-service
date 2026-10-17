@@ -38,6 +38,7 @@ src/
 `src/main.tsx` で `BrowserRouter` + `Routes` を宣言し、`Header` は全ルートに共通で配置される。
 
 現在のルート:
+
 - `/` → `HomePage`
 - `/products` → `ProductPage`（商品一覧）
 - `/products/:id` → `ProductDetailPage`（商品詳細）
@@ -54,10 +55,10 @@ URL パラメータを取るページのテストは、`renderWithProviders` の
 
 `features/product` は**カタログ**と**在庫**を別リソースとして扱う。
 
-| | エンドポイント | `staleTime` |
-|---|---|---|
-| カタログ（名前・説明・価格・画像） | `GET /products` | 1時間 |
-| 在庫数 | `GET /inventories` | 0 |
+|                                    | エンドポイント     | `staleTime` |
+| ---------------------------------- | ------------------ | ----------- |
+| カタログ（名前・説明・価格・画像） | `GET /products`    | 1時間       |
+| 在庫数                             | `GET /inventories` | 0           |
 
 更新頻度が違うため分けてある。1本の API にまとめると、毎秒変わる在庫数のせいで
 カタログ側もキャッシュできなくなる。定数は `features/product/api.ts` に定義。
@@ -67,6 +68,7 @@ URL パラメータを取るページのテストは、`renderWithProviders` の
 TailwindCSS v4 を `@tailwindcss/vite` プラグイン経由で使用（`postcss.config` 不要）。
 
 カスタムトークンは `src/index.css` の `@theme` ブロックで定義:
+
 - **色**: `canvas`（背景）/ `panel` / `panel-hover` / `soft` / `dim` / `pale` / `gold`
 - **フォント**: `font-display`（Cormorant Garamond）/ `font-mono`（JetBrains Mono）
 - **アニメーション**: `animate-ticker` / `animate-pulse-dot` / `animate-fade-in-up`

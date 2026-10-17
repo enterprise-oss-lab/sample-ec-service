@@ -1,15 +1,15 @@
-import { useAuth } from '@/auth/context'
-import { PageHeader } from '@/shared/ui/PageHeader'
-import { Button } from '@/shared/ui/Button'
+import { useAuth } from "@/auth/context";
+import { PageHeader } from "@/shared/ui/PageHeader";
+import { Button } from "@/shared/ui/Button";
 
 export const AccountPage = () => {
-  const { session, login, logout } = useAuth()
+  const { session, login, logout } = useAuth();
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
       <PageHeader label="Account" title="アカウント" />
       {session ? (
         <div className="space-y-4 text-soft">
-          <p>ログイン中: {session.profile.name ?? 'ユーザー'}</p>
+          <p>ログイン中: {session.profile.name ?? "ユーザー"}</p>
           <p>{session.profile.email}</p>
           <Button onClick={() => void logout()}>ログアウト</Button>
         </div>
@@ -23,5 +23,5 @@ export const AccountPage = () => {
         </div>
       )}
     </main>
-  )
-}
+  );
+};

@@ -1,9 +1,9 @@
-import { Outlet, NavLink } from 'react-router'
-import { Flash } from '@/shared/Flash'
-import { useAuth } from '@/auth/context'
+import { Outlet, NavLink } from "react-router";
+import { Flash } from "@/shared/Flash";
+import { useAuth } from "@/auth/context";
 
 export const Layout = () => {
-  const { logout } = useAuth()
+  const { logout } = useAuth();
   return (
     <>
       <header className="border-b border-border bg-canvas">
@@ -27,5 +27,5 @@ export const Layout = () => {
         <Outlet />
       </main>
     </>
-  )
-}
+  );
+};

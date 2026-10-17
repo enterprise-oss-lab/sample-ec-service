@@ -1,4 +1,4 @@
-import { imageUrl } from '@/shared/imageUrl'
+import { imageUrl } from "@/shared/imageUrl";
 
 // カタログ (products) と在庫 (inventories) は別リソースとして扱う。
 // 更新頻度が違うためで、カタログは日〜月単位、在庫は毎秒変わる。
@@ -6,34 +6,35 @@ import { imageUrl } from '@/shared/imageUrl'
 // この境界がそのままキャッシュの境界になる (hooks の staleTime を参照)。
 
 /** カタログは日〜月単位でしか変わらないので長く寝かせる */
-export const CATALOG_STALE_TIME = 60 * 60 * 1000
+export const CATALOG_STALE_TIME = 60 * 60 * 1000;
 /** 在庫は毎秒変わるので寝かせない */
-export const STOCK_STALE_TIME = 0
+export const STOCK_STALE_TIME = 0;
 
 type ProductResponse = {
-  id: number
-  name: string
-  description: string
-  price: number
-  image_key: string | null
-}
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  image_key: string | null;
+};
 
 /** カタログ属性。在庫数は持たない (Stock 側の関心)。 */
 export type Product = {
-  id: number
-  name: string
-  description: string
-  price: number
-  imageUrl: string | null
-}
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  imageUrl: string | null;
+};
 
 /** 在庫。GET /inventories のレスポンスそのまま。商品名は持たない (Product 側の関心)。 */
 export type Stock = {
-  id: number
-  count: number
-}
+  id: number;
+  count: number;
+};
 
-const INVENTORY_API_BASE_URL = import.meta.env.VITE_INVENTORY_API_BASE_URL ?? ''
+const INVENTORY_API_BASE_URL =
+  import.meta.env.VITE_INVENTORY_API_BASE_URL ?? "";
 
 function toProduct(res: ProductResponse): Product {
   return {
@@ -42,14 +43,14 @@ function toProduct(res: ProductResponse): Product {
     description: res.description,
     price: res.price,
     imageUrl: imageUrl(res.image_key),
-  }
+  };
 }
 
 export async function fetchProducts(): Promise<Product[]> {
-  const res = await fetch(`${INVENTORY_API_BASE_URL}/products`)
-  if (!res.ok) throw new Error('Failed to fetch products')
-  const items: ProductResponse[] = await res.json()
-  return items.map(toProduct)
+  const res = await fetch(`${INVENTORY_API_BASE_URL}/products`);
+  if (!res.ok) throw new Error("Failed to fetch products");
+  const items: ProductResponse[] = await res.json();
+  return items.map(toProduct);
 }
 
 /**
@@ -59,20 +60,20 @@ export async function fetchProducts(): Promise<Product[]> {
  * 通信障害などの本当のエラーは throw してリトライさせる。
  */
 export async function fetchProduct(id: number): Promise<Product | null> {
-  const res = await fetch(`${INVENTORY_API_BASE_URL}/products/${id}`)
-  if (res.status === 404) return null
-  if (!res.ok) throw new Error('Failed to fetch product')
-  return toProduct(await res.json())
+  const res = await fetch(`${INVENTORY_API_BASE_URL}/products/${id}`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error("Failed to fetch product");
+  return toProduct(await res.json());
 }
 
 export async function fetchStocks(): Promise<Stock[]> {
-  const res = await fetch(`${INVENTORY_API_BASE_URL}/inventories`)
-  if (!res.ok) throw new Error('Failed to fetch stocks')
-  return res.json()
+  const res = await fetch(`${INVENTORY_API_BASE_URL}/inventories`);
+  if (!res.ok) throw new Error("Failed to fetch stocks");
+  return res.json();
 }
 
 export async function fetchStock(id: number): Promise<Stock> {
-  const res = await fetch(`${INVENTORY_API_BASE_URL}/inventories/${id}`)
-  if (!res.ok) throw new Error('Failed to fetch stock')
-  return res.json()
+  const res = await fetch(`${INVENTORY_API_BASE_URL}/inventories/${id}`);
+  if (!res.ok) throw new Error("Failed to fetch stock");
+  return res.json();
 }

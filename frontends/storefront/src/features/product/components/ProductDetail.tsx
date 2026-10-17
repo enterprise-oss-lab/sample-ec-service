@@ -1,10 +1,10 @@
-import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router'
-import { useProduct } from '../hooks/useProduct'
-import { useStock } from '../hooks/useStock'
-import { useCreateOrder } from '../../order/hooks/useCreateOrder'
-import { useFlash } from '@/shared/Flash'
-import { useAuth } from '@/auth/context'
+import { useState } from "react";
+import { Link, useNavigate, useParams } from "react-router";
+import { useProduct } from "../hooks/useProduct";
+import { useStock } from "../hooks/useStock";
+import { useCreateOrder } from "../../order/hooks/useCreateOrder";
+import { useFlash } from "@/shared/Flash";
+import { useAuth } from "@/auth/context";
 
 const ImageFallback = () => (
   <div className="w-full aspect-square bg-sage-light/30 flex items-center justify-center">
@@ -27,7 +27,7 @@ const ImageFallback = () => (
       />
     </svg>
   </div>
-)
+);
 
 const BackLink = () => (
   <Link
@@ -36,44 +36,44 @@ const BackLink = () => (
   >
     ← 商品一覧に戻る
   </Link>
-)
+);
 
 const Notice = ({ message }: { message: string }) => (
   <div className="py-16 text-center space-y-4">
     <p className="text-dim text-sm">{message}</p>
     <BackLink />
   </div>
-)
+);
 
 export const ProductDetail = () => {
-  const id = Number(useParams().id)
-  const navigate = useNavigate()
-  const { flash } = useFlash()
-  const { session, login } = useAuth()
-  const [imageFailed, setImageFailed] = useState(false)
-  const [qty, setQty] = useState(1)
-  const [showLoginRequired, setShowLoginRequired] = useState(false)
+  const id = Number(useParams().id);
+  const navigate = useNavigate();
+  const { flash } = useFlash();
+  const { session, login } = useAuth();
+  const [imageFailed, setImageFailed] = useState(false);
+  const [qty, setQty] = useState(1);
+  const [showLoginRequired, setShowLoginRequired] = useState(false);
 
   // カタログと在庫は別クエリ。staleTime が違う (api.ts のコメント参照) ため、
   // 1本にまとめてしまうとカタログを長く寝かせられなくなる。
-  const product = useProduct(id)
-  const stock = useStock(id)
+  const product = useProduct(id);
+  const stock = useStock(id);
 
   const { mutate: order, isPending: isOrdering } = useCreateOrder({
     onSuccess: () => {
-      flash('注文が完了しました')
-      navigate('/orders')
+      flash("注文が完了しました");
+      navigate("/orders");
     },
     onError: (error) => flash(error.message),
-  })
+  });
 
   if (!Number.isFinite(id)) {
-    return <Notice message="商品が見つかりませんでした" />
+    return <Notice message="商品が見つかりませんでした" />;
   }
 
   if (product.isError) {
     // 通信障害など。「存在しない」とは別のメッセージにする。
-    return <Notice message="商品の取得に失敗しました" />
+    return <Notice message="商品の取得に失敗しました" />;
   }
 
   if (product.isPending) {
@@ -87,20 +87,20 @@ export const ProductDetail = () => {
           <div className="h-16 w-full bg-border rounded" />
         </div>
       </div>
-    )
+    );
   }
 
   // fetchProduct は 404 で null を返す (api.ts のコメント参照)
-  const detail = product.data
+  const detail = product.data;
   if (detail == null) {
-    return <Notice message="商品が見つかりませんでした" />
+    return <Notice message="商品が見つかりませんでした" />;
   }
 
-  const count = stock.data?.count
-  const outOfStock = count === 0
+  const count = stock.data?.count;
+  const outOfStock = count === 0;
   // 在庫だけ取得に失敗した場合はカタログは出しつつ注文を止める (在庫不明で売らない)。
-  const stockUnknown = stock.isPending || stock.isError || count === undefined
-  const max = count ?? 1
+  const stockUnknown = stock.isPending || stock.isError || count === undefined;
+  const max = count ?? 1;
 
   return (
     <div className="space-y-6">
@@ -132,15 +132,15 @@ export const ProductDetail = () => {
           </p>
 
           <p
-            className={`text-[0.75rem] mb-6 ${outOfStock ? 'text-red-400' : 'text-dim'}`}
+            className={`text-[0.75rem] mb-6 ${outOfStock ? "text-red-400" : "text-dim"}`}
             data-testid="stock-label"
           >
             {stock.isPending
-              ? '在庫を確認中...'
+              ? "在庫を確認中..."
               : stock.isError
-                ? '在庫情報を取得できませんでした'
+                ? "在庫情報を取得できませんでした"
                 : outOfStock
-                  ? '在庫なし'
+                  ? "在庫なし"
                   : `在庫: ${count}点`}
           </p>
 
@@ -160,8 +160,11 @@ export const ProductDetail = () => {
                   max={max}
                   value={qty}
                   onChange={(e) => {
-                    const v = Math.min(Math.max(1, Number(e.target.value)), max)
-                    setQty(isNaN(v) ? 1 : v)
+                    const v = Math.min(
+                      Math.max(1, Number(e.target.value)),
+                      max,
+                    );
+                    setQty(isNaN(v) ? 1 : v);
                   }}
                   className="w-14 rounded border border-border bg-transparent text-center text-sm text-pale focus:outline-none focus:ring-1 focus:ring-sage/40 focus:border-sage/60 transition-colors duration-150"
                 />
@@ -179,40 +182,42 @@ export const ProductDetail = () => {
                 className={`w-full py-2.5 text-[0.85rem] rounded border transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-40 bg-transparent
                   ${
                     outOfStock || stockUnknown || isOrdering
-                      ? 'border-border text-dim'
-                      : 'border-sage text-sage hover:bg-sage-light/40'
+                      ? "border-border text-dim"
+                      : "border-sage text-sage hover:bg-sage-light/40"
                   }`}
                 disabled={isOrdering || outOfStock || stockUnknown}
-                aria-describedby={!session ? 'login-required' : undefined}
+                aria-describedby={!session ? "login-required" : undefined}
                 onMouseEnter={() => {
-                  if (!session) setShowLoginRequired(true)
+                  if (!session) setShowLoginRequired(true);
                 }}
                 onMouseLeave={() => setShowLoginRequired(false)}
                 onFocus={() => {
-                  if (!session) setShowLoginRequired(true)
+                  if (!session) setShowLoginRequired(true);
                 }}
                 onBlur={() => setShowLoginRequired(false)}
                 onClick={() => {
                   if (!session) {
-                    void login()
-                    return
+                    void login();
+                    return;
                   }
                   order({
-                    items: [{
-                      inventory_id: detail.id,
-                      quantity: qty,
-                      expected_unit_price: detail.price,
-                    }],
-                  })
+                    items: [
+                      {
+                        inventory_id: detail.id,
+                        quantity: qty,
+                        expected_unit_price: detail.price,
+                      },
+                    ],
+                  });
                 }}
               >
                 {isOrdering
-                  ? '注文中...'
+                  ? "注文中..."
                   : outOfStock
-                    ? '在庫なし'
+                    ? "在庫なし"
                     : stockUnknown
-                      ? '在庫を確認中...'
-                      : '注文する'}
+                      ? "在庫を確認中..."
+                      : "注文する"}
               </button>
               {!session && showLoginRequired && (
                 <div
@@ -228,5 +233,5 @@ export const ProductDetail = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};

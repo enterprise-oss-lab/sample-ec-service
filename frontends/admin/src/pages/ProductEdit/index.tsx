@@ -1,41 +1,46 @@
-import { useState } from 'react'
-import { useNavigate, useParams } from 'react-router'
-import { ProductForm } from '@/features/inventory/components/ProductForm'
-import { useInventory } from '@/features/inventory/hooks/useInventory'
-import { useUpdateProduct } from '@/features/inventory/hooks/useUpdateProduct'
-import { useDeleteProduct } from '@/features/inventory/hooks/useDeleteProduct'
-import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
-import { Button } from '@/shared/ui/Button'
-import { useFlash } from '@/shared/Flash'
+import { useState } from "react";
+import { useNavigate, useParams } from "react-router";
+import { ProductForm } from "@/features/inventory/components/ProductForm";
+import { useInventory } from "@/features/inventory/hooks/useInventory";
+import { useUpdateProduct } from "@/features/inventory/hooks/useUpdateProduct";
+import { useDeleteProduct } from "@/features/inventory/hooks/useDeleteProduct";
+import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
+import { Button } from "@/shared/ui/Button";
+import { useFlash } from "@/shared/Flash";
 
 export const ProductEditPage = () => {
-  const { id } = useParams<{ id: string }>()
-  const inventoryId = Number(id)
-  const navigate = useNavigate()
-  const { flash } = useFlash()
-  const [confirmOpen, setConfirmOpen] = useState(false)
+  const { id } = useParams<{ id: string }>();
+  const inventoryId = Number(id);
+  const navigate = useNavigate();
+  const { flash } = useFlash();
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
-  const { data, isPending: isLoading, isError } = useInventory(inventoryId)
+  const { data, isPending: isLoading, isError } = useInventory(inventoryId);
 
-  const { mutate: update, isPending: isUpdating, error: updateError } = useUpdateProduct({
+  const {
+    mutate: update,
+    isPending: isUpdating,
+    error: updateError,
+  } = useUpdateProduct({
     onSuccess: () => {
-      flash('商品を更新しました')
-      navigate('/')
+      flash("商品を更新しました");
+      navigate("/");
     },
-  })
+  });
   const { mutate: remove, isPending: isDeleting } = useDeleteProduct({
     onSuccess: () => {
-      flash('商品を削除しました')
-      navigate('/')
+      flash("商品を削除しました");
+      navigate("/");
     },
     onError: (err) => {
-      flash(err.message, 'error')
-      setConfirmOpen(false)
+      flash(err.message, "error");
+      setConfirmOpen(false);
     },
-  })
+  });
 
-  if (isLoading) return <p className="text-dim text-sm">読み込み中...</p>
-  if (isError || !data) return <p className="text-danger text-sm">商品の取得に失敗しました</p>
+  if (isLoading) return <p className="text-dim text-sm">読み込み中...</p>;
+  if (isError || !data)
+    return <p className="text-danger text-sm">商品の取得に失敗しました</p>;
 
   return (
     <div>
@@ -76,5 +81,5 @@ export const ProductEditPage = () => {
         isConfirming={isDeleting}
       />
     </div>
-  )
-}
+  );
+};

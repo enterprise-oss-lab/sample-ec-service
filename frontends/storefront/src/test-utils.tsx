@@ -1,22 +1,22 @@
-import { type ReactNode } from 'react'
+import { type ReactNode } from "react";
 import {
   render,
   type RenderOptions,
   renderHook,
   type RenderHookOptions,
-} from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { MemoryRouter } from 'react-router'
-import { FlashProvider, Flash } from '@/shared/Flash'
-import { AuthProvider } from '@/auth/context'
+} from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router";
+import { FlashProvider, Flash } from "@/shared/Flash";
+import { AuthProvider } from "@/auth/context";
 
-function createWrapper(initialEntries: string[] = ['/']) {
+function createWrapper(initialEntries: string[] = ["/"]) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
       mutations: { retry: false },
     },
-  })
+  });
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
       <QueryClientProvider client={queryClient}>
@@ -29,39 +29,39 @@ function createWrapper(initialEntries: string[] = ['/']) {
           </MemoryRouter>
         </FlashProvider>
       </QueryClientProvider>
-    )
-  }
+    );
+  };
 }
 
 // initialEntries は URL パラメータを取るページ (例 /products/:id) のテスト用。
 // Router は入れ子にできないため、ここで初期 URL を渡す必要がある。
 export function renderWithProviders(
   ui: React.ReactElement,
-  options?: Omit<RenderOptions, 'wrapper'> & { initialEntries?: string[] },
+  options?: Omit<RenderOptions, "wrapper"> & { initialEntries?: string[] },
 ) {
-  const { initialEntries, ...renderOptions } = options ?? {}
+  const { initialEntries, ...renderOptions } = options ?? {};
   return render(ui, {
     wrapper: createWrapper(initialEntries),
     ...renderOptions,
-  })
+  });
 }
 
 export function renderHookWithProviders<T>(
   hook: () => T,
-  options?: Omit<RenderHookOptions<unknown>, 'wrapper'>,
+  options?: Omit<RenderHookOptions<unknown>, "wrapper">,
 ) {
-  return renderHook(hook, { wrapper: createWrapper(), ...options })
+  return renderHook(hook, { wrapper: createWrapper(), ...options });
 }
 
 export function authenticateForTest() {
   sessionStorage.setItem(
-    'sample-ec.storefront.session',
+    "sample-ec.storefront.session",
     JSON.stringify({
-      accessToken: 'test-access-token',
+      accessToken: "test-access-token",
       expiresAt: Date.now() + 60_000,
-      profile: { roles: ['customer'] },
+      profile: { roles: ["customer"] },
     }),
-  )
+  );
 }
 
-export * from '@testing-library/react'
+export * from "@testing-library/react";

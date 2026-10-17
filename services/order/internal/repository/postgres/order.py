@@ -35,7 +35,12 @@ class PostgresOrderRepository(OrderRepository):
                 await conn.executemany(
                     "INSERT INTO order_items (order_id, inventory_id, quantity, unit_price_at_order) VALUES ($1, $2, $3, $4)",
                     [
-                        (order.id, item.inventory_id, item.quantity, item.unit_price_at_order)
+                        (
+                            order.id,
+                            item.inventory_id,
+                            item.quantity,
+                            item.unit_price_at_order,
+                        )
                         for item in order.items
                     ],
                 )
@@ -74,7 +79,10 @@ class PostgresOrderRepository(OrderRepository):
             # N+1 だったため、注文が増えるほど list_all が遅くなり、pool 接続を長時間占有して
             # 他リクエストを詰まらせていた)。
             items_by_order = await self._fetch_items(conn, [row["id"] for row in rows])
-            return [self._build_order(row, items_by_order.get(row["id"], [])) for row in rows]
+            return [
+                self._build_order(row, items_by_order.get(row["id"], []))
+                for row in rows
+            ]
 
     async def find_by_correlation_id(self, correlation_id: str) -> Order:
         async with self._pool.acquire() as conn:
@@ -83,13 +91,13 @@ class PostgresOrderRepository(OrderRepository):
                 correlation_id,
             )
             if row is None:
-                raise NotFoundError(f"order with correlation_id {correlation_id} not found")
+                raise NotFoundError(
+                    f"order with correlation_id {correlation_id} not found"
+                )
             items_by_order = await self._fetch_items(conn, [row["id"]])
             return self._build_order(row, items_by_order.get(row["id"], []))
 
-    async def _fetch_items(
-        self, conn: asyncpg.Connection, order_ids: list
-    ) -> dict:
+    async def _fetch_items(self, conn: asyncpg.Connection, order_ids: list) -> dict:
         """複数注文の order_items を1クエリで取得し、order_id ごとにまとめて返す。"""
         rows = await conn.fetch(
             "SELECT order_id, inventory_id, quantity, unit_price_at_order FROM order_items WHERE order_id = ANY($1::uuid[]) ORDER BY id",

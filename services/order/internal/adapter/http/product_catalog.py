@@ -19,7 +19,9 @@ class InventoryProductCatalog:
         try:
             return int(response.json()["price"])
         except (KeyError, TypeError, ValueError) as exc:
-            raise CatalogUnavailableError("product catalog returned an invalid price") from exc
+            raise CatalogUnavailableError(
+                "product catalog returned an invalid price"
+            ) from exc
 
     async def close(self) -> None:
         await self._client.aclose()

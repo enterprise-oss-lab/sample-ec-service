@@ -36,7 +36,7 @@ func NewConsumer(brokers []string, topic, groupID string, uc usecase.InventoryUs
 		return nil, fmt.Errorf("new consumer: %w", err)
 	}
 	if err := c.SubscribeTopics([]string{topic}, nil); err != nil {
-		c.Close()
+		_ = c.Close()
 		return nil, fmt.Errorf("subscribe: %w", err)
 	}
 	return &Consumer{

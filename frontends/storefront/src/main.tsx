@@ -1,30 +1,30 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
 
-if (import.meta.env.VITE_MSW_ENABLED === 'true') {
+if (import.meta.env.VITE_MSW_ENABLED === "true") {
   try {
-    const { worker } = await import('./mocks/browser')
-    await worker.start({ onUnhandledRequest: 'bypass' })
+    const { worker } = await import("./mocks/browser");
+    await worker.start({ onUnhandledRequest: "bypass" });
   } catch {
     // Service workers not available (e.g., blocked in test environment)
   }
 }
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { BrowserRouter, Route, Routes } from 'react-router'
-import { HomePage } from './pages/Home/index.tsx'
-import { OrderPage } from './pages/Order/index.tsx'
-import { AccountPage } from './pages/Account/index.tsx'
-import { CartPage } from './pages/Cart/index.tsx'
-import { Header } from './shared/Header/index.tsx'
-import { Flash, FlashProvider } from './shared/Flash/index.tsx'
-import './index.css'
-import { ProductPage } from './pages/Product/index.tsx'
-import { ProductDetailPage } from './pages/ProductDetail/index.tsx'
-import { AuthProvider, RequireAuth } from './auth/context.tsx'
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Route, Routes } from "react-router";
+import { HomePage } from "./pages/Home/index.tsx";
+import { OrderPage } from "./pages/Order/index.tsx";
+import { AccountPage } from "./pages/Account/index.tsx";
+import { CartPage } from "./pages/Cart/index.tsx";
+import { Header } from "./shared/Header/index.tsx";
+import { Flash, FlashProvider } from "./shared/Flash/index.tsx";
+import "./index.css";
+import { ProductPage } from "./pages/Product/index.tsx";
+import { ProductDetailPage } from "./pages/ProductDetail/index.tsx";
+import { AuthProvider, RequireAuth } from "./auth/context.tsx";
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient();
 
-createRoot(document.getElementById('root')!).render(
+createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <FlashProvider>
@@ -56,4 +56,4 @@ createRoot(document.getElementById('root')!).render(
       </FlashProvider>
     </QueryClientProvider>
   </StrictMode>,
-)
+);

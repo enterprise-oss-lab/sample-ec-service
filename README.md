@@ -1,5 +1,26 @@
 # Sample EC Service
 
+## Quality checks
+
+Run the same checks used by CI from the repository root:
+
+```bash
+make lint
+make format-check
+make format
+```
+
+Target a component with `make lint-order`, `make format-check-admin`, and the
+other component-specific targets listed in the `Makefile`. Python dependencies
+include Ruff in `services/order`'s `dev` extra; frontend dependencies are locked
+in each application's `pnpm-lock.yaml`.
+
+To hide mechanical formatting commits in local blame output, configure:
+
+```bash
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
 EC サイトを模したマイクロサービス構成のサンプルアプリケーション。注文・在庫の 2 サービスが Kafka 経由で連携し、Saga パターンで注文ステータスを更新する。
 
 ## 構成
