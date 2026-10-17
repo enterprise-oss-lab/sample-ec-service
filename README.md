@@ -21,6 +21,46 @@ To hide mechanical formatting commits in local blame output, configure:
 git config blame.ignoreRevsFile .git-blame-ignore-revs
 ```
 
+### pre-commit setup
+
+pre-commit runs the same component linters and formatters before each commit.
+It formats staged Go, Python, Admin, and Storefront files automatically, then
+runs the applicable linter. CI remains the final quality gate.
+
+Install the following prerequisites first:
+
+- Git and [pre-commit](https://pre-commit.com/)
+- Go and `golangci-lint` for `services/inventory`
+- Python 3.10+ and the Order service development dependencies (including Ruff)
+- Node.js and pnpm 10.32.1 for Admin and Storefront; run `pnpm install` in each
+  frontend before committing frontend changes
+
+Install the hook after cloning the repository:
+
+```bash
+pre-commit install
+```
+
+Run every hook once after setup or after updating hook configuration:
+
+```bash
+pre-commit run --all-files
+```
+
+Normal `git commit` usage runs hooks only for staged files. You can run the
+checks manually while working on a component, or all applicable changed files:
+
+```bash
+pre-commit run
+pre-commit run ruff-format --files services/order/path/to_file.py
+pre-commit run admin-eslint --files frontends/admin/src/path/to_file.tsx
+```
+
+When a formatter changes a file, review and stage the resulting edit, then
+commit again. Fix linter failures reported by the hook and rerun the relevant
+command (or retry the commit). Do not routinely use `git commit --no-verify`:
+it bypasses these local checks and should be reserved for exceptional cases.
+
 EC サイトを模したマイクロサービス構成のサンプルアプリケーション。注文・在庫の 2 サービスが Kafka 経由で連携し、Saga パターンで注文ステータスを更新する。
 
 ## 構成
