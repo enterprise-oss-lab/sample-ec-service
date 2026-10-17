@@ -35,7 +35,13 @@ Install the following prerequisites first:
 - Node.js and pnpm 10.32.1 for Admin and Storefront; run `pnpm install` in each
   frontend before committing frontend changes
 
-Install the hook after cloning the repository:
+Install the pre-commit command-line tool once (recommended with `pipx`):
+
+```bash
+pipx install pre-commit
+```
+
+Then, separately install this repository's Git hook after cloning it:
 
 ```bash
 pre-commit install
