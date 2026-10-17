@@ -1,8 +1,8 @@
 # Sample EC Service
 
-## Quality checks
+## 品質チェック
 
-Run the same checks used by CI from the repository root:
+リポジトリルートで、CIと同じチェックを実行できます。
 
 ```bash
 make lint
@@ -10,51 +10,51 @@ make format-check
 make format
 ```
 
-Target a component with `make lint-order`, `make format-check-admin`, and the
-other component-specific targets listed in the `Makefile`. Python dependencies
-include Ruff in `services/order`'s `dev` extra; frontend dependencies are locked
-in each application's `pnpm-lock.yaml`.
+`make lint-order`、`make format-check-admin` など、`Makefile` に記載された
+コンポーネントごとのターゲットで個別に実行することもできます。Pythonの依存関係には
+`services/order` の `dev` extra でRuffが含まれています。frontendの依存関係は
+各アプリケーションの `pnpm-lock.yaml` で固定されています。
 
-To hide mechanical formatting commits in local blame output, configure:
+ローカルのblame出力で機械的なフォーマットコミットを隠すには、次を設定します。
 
 ```bash
 git config blame.ignoreRevsFile .git-blame-ignore-revs
 ```
 
-### pre-commit setup
+### pre-commitのセットアップ
 
-pre-commit runs the same component linters and formatters before each commit.
-It formats staged Go, Python, Admin, and Storefront files automatically, then
-runs the applicable linter. CI remains the final quality gate.
+pre-commitはコミット前に、各コンポーネントでCIと同じLinter／Formatterを実行します。
+ステージ済みのGo、Python、Admin、Storefrontのファイルは自動整形され、その後に該当する
+Linterが実行されます。CIは最終的な品質ゲートとして維持されます。
 
-Install the following prerequisites first:
+最初に以下の前提ツールを用意してください。
 
-- Git and [pre-commit](https://pre-commit.com/)
-- Go and `golangci-lint` for `services/inventory`
-- Python 3.10+ and the Order service development dependencies (including Ruff)
-- Node.js and pnpm 10.32.1 for Admin and Storefront; run `pnpm install` in each
-  frontend before committing frontend changes
+- Gitと[pre-commit](https://pre-commit.com/)
+- `services/inventory` 向けのGoと`golangci-lint`
+- Python 3.10以上とOrder Serviceの開発用依存関係（Ruffを含む）
+- Admin／Storefront向けのNode.jsとpnpm 10.32.1。frontendを変更してコミットする前に、
+  各frontendで`pnpm install`を実行してください
 
-Install the pre-commit command-line tool once (recommended with `pipx`):
+pre-commitのコマンドラインツールを一度だけインストールします。`pipx`の利用を推奨します。
 
 ```bash
 pipx install pre-commit
 ```
 
-Then, separately install this repository's Git hook after cloning it:
+続いて、リポジトリをcloneした後に、このリポジトリ用のGit hookを別工程でインストールします。
 
 ```bash
 pre-commit install
 ```
 
-Run every hook once after setup or after updating hook configuration:
+セットアップ後またはhook設定の更新後には、初回として全hookを実行してください。
 
 ```bash
 pre-commit run --all-files
 ```
 
-Normal `git commit` usage runs hooks only for staged files. You can run the
-checks manually while working on a component, or all applicable changed files:
+通常の`git commit`では、ステージ済みファイルだけにhookが実行されます。コンポーネントの
+作業中や、該当する変更ファイル全体を対象に手動実行することもできます。
 
 ```bash
 pre-commit run
@@ -62,10 +62,10 @@ pre-commit run ruff-format --files services/order/path/to_file.py
 pre-commit run admin-eslint --files frontends/admin/src/path/to_file.tsx
 ```
 
-When a formatter changes a file, review and stage the resulting edit, then
-commit again. Fix linter failures reported by the hook and rerun the relevant
-command (or retry the commit). Do not routinely use `git commit --no-verify`:
-it bypasses these local checks and should be reserved for exceptional cases.
+Formatterがファイルを変更した場合は、変更内容を確認してステージし直してから再度コミット
+してください。hookが報告したLinterエラーを修正し、該当コマンドを再実行するかコミットを
+再試行してください。`git commit --no-verify`はローカルチェックを回避するため、常用せず、
+例外的な場合にのみ使用してください。
 
 EC サイトを模したマイクロサービス構成のサンプルアプリケーション。注文・在庫の 2 サービスが Kafka 経由で連携し、Saga パターンで注文ステータスを更新する。
 
