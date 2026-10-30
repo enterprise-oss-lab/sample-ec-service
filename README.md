@@ -87,6 +87,9 @@ Storefront ──▶ Order Service ──▶ Kafka ──▶ Inventory Service
 
 Order Service が注文作成時に在庫予約リクエストを Kafka に publish し、Inventory Service が処理結果を Kafka 経由で返す。Order Service は結果を consume して注文ステータス（`PENDING` → `CONFIRMED` / `FAILED`）を更新する。
 
+注文確定の分析イベントは、Transactional Outbox → Debezium → `order.confirmed` topicへ配信する。
+起動・再登録・イベント契約・検証手順は[Outbox CDC](docs/outbox-cdc.md)を参照。
+
 ## クイックスタート
 
 リポジトリルートで、Kafka・PostgreSQL・RustFS・各サービス・Storefront・Admin をまとめて起動する。

@@ -1,0 +1,35 @@
+# Isolated disposable stack: never operates on the running EC containers/volumes.
+services:
+  kafka:
+    extends:
+      file: ../../compose.yaml
+      service: kafka
+    container_name: outbox-smoke-kafka
+    ports: !reset []
+  kafka-init:
+    extends:
+      file: ../../compose.yaml
+      service: kafka-init
+    container_name: outbox-smoke-kafka-init
+  order-db:
+    extends:
+      file: ../../compose.yaml
+      service: order-db
+    container_name: outbox-smoke-order-db
+    volumes: !override
+      - order-db-data:/var/lib/postgresql/data
+      - ../../services/order/db/migrations:/docker-entrypoint-initdb.d:ro
+  kafka-connect:
+    extends:
+      file: ../../compose.yaml
+      service: kafka-connect
+    ports: !reset []
+  order-outbox-init:
+    extends:
+      file: ../../compose.yaml
+      service: order-outbox-init
+    volumes: !override
+      - ./order-outbox.json:/config/order-outbox.json:ro
+volumes:
+  kafka-data:
+  order-db-data:

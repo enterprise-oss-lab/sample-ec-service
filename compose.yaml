@@ -200,7 +200,7 @@ services:
     command:
       - |
         set -eu
-        for topic in inventory.reservation.requests inventory.reservation.results; do
+        for topic in inventory.reservation.requests inventory.reservation.results order.confirmed; do
           /opt/kafka/bin/kafka-topics.sh \
             --bootstrap-server kafka:9092 \
             --create \
@@ -209,6 +209,71 @@ services:
             --partitions 1 \
             --replication-factor 1
         done
+        for topic in connect.configs connect.offsets connect.status; do
+          /opt/kafka/bin/kafka-topics.sh \
+            --bootstrap-server kafka:9092 --create --if-not-exists \
+            --topic "$$topic" --partitions 1 --replication-factor 1 \
+            --config cleanup.policy=compact
+        done
+    restart: "no"
+
+  kafka-connect:
+    image: quay.io/debezium/connect:3.3.1.Final
+    environment:
+      BOOTSTRAP_SERVERS: kafka:9092
+      GROUP_ID: order-outbox-connect
+      CONFIG_STORAGE_TOPIC: connect.configs
+      OFFSET_STORAGE_TOPIC: connect.offsets
+      STATUS_STORAGE_TOPIC: connect.status
+      CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      STATUS_STORAGE_REPLICATION_FACTOR: 1
+      KEY_CONVERTER: org.apache.kafka.connect.storage.StringConverter
+      VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_TOPIC_CREATION_ENABLE: "false"
+      CONNECT_PLUGIN_DISCOVERY: service_load
+      CONNECT_CONFIG_PROVIDERS: env
+      CONNECT_CONFIG_PROVIDERS_ENV_CLASS: org.apache.kafka.common.config.provider.EnvVarConfigProvider
+      ORDER_DB_PASSWORD: password  # pragma: allowlist secret
+    ports:
+      - "127.0.0.1:8083:8083"
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+      order-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8083/connectors"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  order-outbox-init:
+    image: curlimages/curl:8.16.0
+    depends_on:
+      kafka-connect:
+        condition: service_healthy
+    volumes:
+      - ./infrastructure/debezium/order-outbox.json:/config/order-outbox.json:ro
+    entrypoint: ["curl"]
+    command:
+      - --fail-with-body
+      - --silent
+      - --show-error
+      - --retry
+      - "10"
+      - --retry-all-errors
+      - --retry-delay
+      - "3"
+      - -X
+      - PUT
+      - -H
+      - "Content-Type: application/json"
+      - --data-binary
+      - "@/config/order-outbox.json"
+      - http://kafka-connect:8083/connectors/order-outbox/config
     restart: "no"
 
   otel-lgtm:
@@ -353,6 +418,7 @@ services:
   order-db:
     image: postgres:17-alpine
     container_name: order-db
+    command: ["postgres", "-c", "wal_level=logical"]
     environment:
       POSTGRES_USER: order
       POSTGRES_PASSWORD: password  # pragma: allowlist secret
