@@ -38,7 +38,12 @@ class PostgresOrderRepository(OrderRepository):
                     await conn.executemany(
                         "INSERT INTO order_items (order_id, inventory_id, quantity, unit_price_at_order) VALUES ($1, $2, $3, $4)",
                         [
-                            (order.id, item.inventory_id, item.quantity, item.unit_price_at_order)
+                            (
+                                order.id,
+                                item.inventory_id,
+                                item.quantity,
+                                item.unit_price_at_order,
+                            )
                             for item in order.items
                         ],
                     )
