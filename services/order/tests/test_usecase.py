@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -178,7 +178,9 @@ class TestHandleReservationResult:
         uc = make_usecase(repo=repo)
 
         await uc.handle_reservation_result(
-            ReservationResult(correlation_id="order-1", success=False, error="insufficient stock")
+            ReservationResult(
+                correlation_id="order-1", success=False, error="insufficient stock"
+            )
         )
 
         assert order.status == OrderStatus.FAILED

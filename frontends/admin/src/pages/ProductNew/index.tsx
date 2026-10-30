@@ -1,17 +1,17 @@
-import { useNavigate } from 'react-router'
-import { ProductForm } from '@/features/inventory/components/ProductForm'
-import { useCreateProduct } from '@/features/inventory/hooks/useCreateProduct'
-import { useFlash } from '@/shared/Flash'
+import { useNavigate } from "react-router";
+import { ProductForm } from "@/features/inventory/components/ProductForm";
+import { useCreateProduct } from "@/features/inventory/hooks/useCreateProduct";
+import { useFlash } from "@/shared/Flash";
 
 export const ProductNewPage = () => {
-  const navigate = useNavigate()
-  const { flash } = useFlash()
+  const navigate = useNavigate();
+  const { flash } = useFlash();
   const { mutate, isPending, error } = useCreateProduct({
     onSuccess: () => {
-      flash('商品を作成しました')
-      navigate('/')
+      flash("商品を作成しました");
+      navigate("/");
     },
-  })
+  });
 
   return (
     <div>
@@ -31,5 +31,5 @@ export const ProductNewPage = () => {
         errorMessage={error?.message}
       />
     </div>
-  )
-}
+  );
+};

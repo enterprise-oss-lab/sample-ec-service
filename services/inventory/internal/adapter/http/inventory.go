@@ -296,7 +296,7 @@ func (h *InventoryHandler) UploadImage(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, errorResponse("failed to read image file"))
 		return
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	data, err := io.ReadAll(file)
 	if err != nil {

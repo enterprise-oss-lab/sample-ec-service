@@ -74,7 +74,9 @@ class OrderUsecase:
             if item.quantity <= 0:
                 raise ValueError("quantity must be greater than 0")
             if item.unit_price_at_order < 0:
-                raise ValueError("expected_unit_price must be greater than or equal to 0")
+                raise ValueError(
+                    "expected_unit_price must be greater than or equal to 0"
+                )
 
         priced_items = []
         for item in items:

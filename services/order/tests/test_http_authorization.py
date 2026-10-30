@@ -72,7 +72,9 @@ def test_create_order_uses_authenticated_subject_not_request_body() -> None:
 
     response = client.post(
         "/orders",
-        json={"items": [{"inventory_id": 1, "quantity": 1, "expected_unit_price": 1200}]},
+        json={
+            "items": [{"inventory_id": 1, "quantity": 1, "expected_unit_price": 1200}]
+        },
     )
 
     assert response.status_code == 201

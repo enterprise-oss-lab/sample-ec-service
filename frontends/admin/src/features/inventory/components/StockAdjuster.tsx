@@ -1,14 +1,14 @@
-import { useFlash } from '@/shared/Flash'
-import { useAdjustStock } from '../hooks/useAdjustStock'
-import type { Inventory } from '../api'
+import { useFlash } from "@/shared/Flash";
+import { useAdjustStock } from "../hooks/useAdjustStock";
+import type { Inventory } from "../api";
 
 export const StockAdjuster = ({ inventory }: { inventory: Inventory }) => {
-  const { flash } = useFlash()
+  const { flash } = useFlash();
   const { mutate, isPending } = useAdjustStock({
-    onError: (err) => flash(err.message, 'error'),
-  })
+    onError: (err) => flash(err.message, "error"),
+  });
 
-  const adjust = (delta: number) => mutate({ id: inventory.id, delta })
+  const adjust = (delta: number) => mutate({ id: inventory.id, delta });
 
   return (
     <div className="flex items-center gap-2">
@@ -30,5 +30,5 @@ export const StockAdjuster = ({ inventory }: { inventory: Inventory }) => {
         ＋
       </button>
     </div>
-  )
-}
+  );
+};

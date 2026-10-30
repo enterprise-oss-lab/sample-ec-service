@@ -7,31 +7,18 @@ on:
       - "services/**/*.go"
       - "services/**/go.mod"
       - "services/**/go.sum"
-      - ".github/workflows/ci-inventory.yml"
+      - ".github/workflows/ci-inventory.yaml"
+      - "services/inventory/.golangci.yml"
   pull_request:
     paths:
       - "services/**/*.go"
       - "services/**/go.mod"
       - "services/**/go.sum"
-      - ".github/workflows/ci-inventory.yml"
+      - ".github/workflows/ci-inventory.yaml"
+      - "services/inventory/.golangci.yml"
 
 jobs:
-  detect-changes:
-    runs-on: ubuntu-latest
-    outputs:
-      inventory: ${{ steps.filter.outputs.inventory }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            inventory:
-              - "services/inventory/**"
-
   test-inventory:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.inventory == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -42,7 +29,15 @@ jobs:
         with:
           go-version-file: services/inventory/go.mod
           cache-dependency-path: services/inventory/go.sum
+      - uses: golangci/golangci-lint-action@v7
+        with:
+          version: v2.6.1
+          working-directory: services/inventory
       - name: Download dependencies
         run: go mod download
+      - name: Run lint
+        run: golangci-lint run ./...
+      - name: Check formatting
+        run: test -z "$(gofmt -l $(find . -name '*.go' -not -path './vendor/*'))"
       - name: Run tests
         run: go test ./...

@@ -51,15 +51,16 @@ pnpm test:e2e     # Playwright（page.route でバックエンドをモック）
 
 ### 環境変数
 
-| 変数 | 説明 | ローカル既定値 |
-|---|---|---|
-| `VITE_INVENTORY_API_BASE_URL` | inventory service のベース URL | `http://localhost:18081` |
-| `VITE_IMAGE_BASE_URL` | RustFS の画像バケットへのベース URL（ブラウザから直接参照するため `localhost` 側の URL） | `http://localhost:9000/products` |
+| 変数                          | 説明                                                                                     | ローカル既定値                   |
+| ----------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------- |
+| `VITE_INVENTORY_API_BASE_URL` | inventory service のベース URL                                                           | `http://localhost:18081`         |
+| `VITE_IMAGE_BASE_URL`         | RustFS の画像バケットへのベース URL（ブラウザから直接参照するため `localhost` 側の URL） | `http://localhost:9000/products` |
 
 ### デザイン
 
 storefront とは対照的に、業務ツールとしてライトテーマ・システムフォント・等幅数字・高密度テーブルを採用。
 アクセント色に storefront の sage を借りる。
+
 ## 認証
 
 Admin はZITADELのAuthorization Code + PKCEを使い、`admin` ロールを持つ `ec-admin` だけが管理画面と `/admin/*` APIを利用できる。ローカルの認証情報はルートREADMEを参照。

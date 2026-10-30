@@ -1,20 +1,20 @@
-import { defineConfig } from 'vitest/config'
-import react from '@vitejs/plugin-react'
-import { fileURLToPath } from 'url'
-import tailwindcss from '@tailwindcss/vite'
+import { defineConfig } from "vitest/config";
+import react from "@vitejs/plugin-react";
+import { fileURLToPath } from "url";
+import tailwindcss from "@tailwindcss/vite";
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
-    }
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
+    },
   },
   test: {
-    environment: 'happy-dom',
-    setupFiles: ['./src/test-setup.ts'],
+    environment: "happy-dom",
+    setupFiles: ["./src/test-setup.ts"],
     globals: true,
-    include: ['src/**/*.test.{ts,tsx}'],
+    include: ["src/**/*.test.{ts,tsx}"],
   },
-})
+});

@@ -1,8 +1,8 @@
-import { NavLink } from 'react-router'
-import { useAuth } from '@/auth/context'
+import { NavLink } from "react-router";
+import { useAuth } from "@/auth/context";
 
 export const HomePage = () => {
-  const { session } = useAuth()
+  const { session } = useAuth();
 
   return (
     <div className="bg-canvas min-h-screen flex flex-col">
@@ -72,5 +72,5 @@ export const HomePage = () => {
         </div>
       </footer>
     </div>
-  )
-}
+  );
+};
