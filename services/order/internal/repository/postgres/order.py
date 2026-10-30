@@ -13,13 +13,12 @@ class PostgresOrderRepository(OrderRepository):
     async def save(self, order: Order) -> None:
         async with self._pool.acquire() as conn:
             async with conn.transaction():
-                await conn.execute(
+                inserted_id = await conn.fetchval(
                     """
                     INSERT INTO orders (id, customer_id, status, correlation_id, created_at, updated_at)
                     VALUES ($1, $2, $3, $4, $5, $6)
-                    ON CONFLICT (id) DO UPDATE
-                        SET status     = EXCLUDED.status,
-                            updated_at = EXCLUDED.updated_at
+                    ON CONFLICT (id) DO NOTHING
+                    RETURNING id
                     """,
                     order.id,
                     order.customer_id,
@@ -28,22 +27,26 @@ class PostgresOrderRepository(OrderRepository):
                     order.created_at,
                     order.updated_at,
                 )
-                await conn.execute(
-                    "DELETE FROM order_items WHERE order_id = $1",
-                    order.id,
-                )
-                await conn.executemany(
-                    "INSERT INTO order_items (order_id, inventory_id, quantity, unit_price_at_order) VALUES ($1, $2, $3, $4)",
-                    [
-                        (
-                            order.id,
-                            item.inventory_id,
-                            item.quantity,
-                            item.unit_price_at_order,
-                        )
-                        for item in order.items
-                    ],
-                )
+                if inserted_id is None:
+                    await conn.execute(
+                        "UPDATE orders SET status = $2, updated_at = $3 WHERE id = $1",
+                        order.id,
+                        order.status.value,
+                        order.updated_at,
+                    )
+                else:
+                    await conn.executemany(
+                        "INSERT INTO order_items (order_id, inventory_id, quantity, unit_price_at_order) VALUES ($1, $2, $3, $4)",
+                        [
+                            (
+                                order.id,
+                                item.inventory_id,
+                                item.quantity,
+                                item.unit_price_at_order,
+                            )
+                            for item in order.items
+                        ],
+                    )
 
     async def find_by_id(self, id: str) -> Order:
         async with self._pool.acquire() as conn:
@@ -100,7 +103,7 @@ class PostgresOrderRepository(OrderRepository):
     async def _fetch_items(self, conn: asyncpg.Connection, order_ids: list) -> dict:
         """複数注文の order_items を1クエリで取得し、order_id ごとにまとめて返す。"""
         rows = await conn.fetch(
-            "SELECT order_id, inventory_id, quantity, unit_price_at_order FROM order_items WHERE order_id = ANY($1::uuid[]) ORDER BY id",
+            "SELECT id, order_id, inventory_id, quantity, unit_price_at_order FROM order_items WHERE order_id = ANY($1::uuid[]) ORDER BY id",
             order_ids,
         )
         items_by_order: dict = {}
@@ -110,6 +113,7 @@ class PostgresOrderRepository(OrderRepository):
                     inventory_id=r["inventory_id"],
                     quantity=r["quantity"],
                     unit_price_at_order=r["unit_price_at_order"],
+                    id=r["id"],
                 )
             )
         return items_by_order
