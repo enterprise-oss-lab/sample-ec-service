@@ -1,0 +1,32 @@
+name: Outbox CDC
+
+on:
+  pull_request:
+    paths:
+      - compose.yaml
+      - infrastructure/debezium/**
+      - services/order/db/migrations/**
+      - .github/workflows/outbox-cdc.yaml
+  push:
+    branches: [main]
+    paths:
+      - compose.yaml
+      - infrastructure/debezium/**
+      - services/order/db/migrations/**
+      - .github/workflows/outbox-cdc.yaml
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Compose
+        run: |
+          docker compose --env-file .env.example config --quiet
+          docker compose --env-file .env.example -f infrastructure/debezium/compose.smoke.yaml config --quiet
+      - name: Verify Outbox delivery and recovery
+        run: python3 infrastructure/debezium/smoke.py
