@@ -1,6 +1,3 @@
-CREATE SCHEMA IF NOT EXISTS iceberg.bronze;
-CREATE SCHEMA IF NOT EXISTS iceberg.gold;
-
 DROP TABLE IF EXISTS iceberg.bronze.catalog_smoke;
 CREATE TABLE iceberg.bronze.catalog_smoke (
   event_id VARCHAR,

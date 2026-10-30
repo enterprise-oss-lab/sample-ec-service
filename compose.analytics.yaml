@@ -59,13 +59,31 @@ services:
       - "127.0.0.1:${ANALYTICS_TRINO_PORT:-28080}:8080"
     volumes:
       - ./analytics/trino/catalog:/etc/trino/catalog:ro
-      - ./analytics/trino/smoke.sql:/opt/analytics/smoke.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "curl --fail --silent http://localhost:8080/v1/info >/dev/null"]
       interval: 5s
       timeout: 5s
       retries: 30
       start_period: 20s
+
+  analytics-namespace-init:
+    image: trinodb/trino:483
+    depends_on:
+      analytics-trino:
+        condition: service_healthy
+    volumes:
+      - ./analytics/trino/init.sql:/opt/analytics/init.sql:ro
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        for attempt in $$(seq 1 30); do
+          if trino --server http://analytics-trino:8080 --file /opt/analytics/init.sql; then
+            exit 0
+          fi
+          sleep 2
+        done
+        exit 1
+    restart: "no"
 
 volumes:
   analytics-catalog-data:

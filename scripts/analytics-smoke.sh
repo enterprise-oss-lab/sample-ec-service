@@ -12,7 +12,7 @@ run_smoke_sql() {
   local output
   for _ in {1..30}; do
     if output="$("${compose[@]}" exec -T analytics-trino trino \
-      --file /opt/analytics/smoke.sql 2>&1)"; then
+      --file /dev/stdin < analytics/tests/smoke.sql 2>&1)"; then
       return 0
     fi
     sleep 2
@@ -38,6 +38,7 @@ query_trino() {
 case "${1:-all}" in
   all)
     "${compose[@]}" up -d --wait analytics-rest analytics-trino
+    "${compose[@]}" run --rm analytics-namespace-init
     run_smoke_sql
     schemas="$("${compose[@]}" exec -T analytics-trino trino --output-format TSV --execute \
       "SHOW SCHEMAS FROM iceberg")"
@@ -58,7 +59,7 @@ case "${1:-all}" in
     "${compose[@]}" stop analytics-rest analytics-trino
     ;;
   clean)
-    "${compose[@]}" rm -sf analytics-rest analytics-trino analytics-catalog-init
+    "${compose[@]}" rm -sf analytics-rest analytics-trino analytics-catalog-init analytics-namespace-init
     "${compose[@]}" up -d --wait rustfs
     if run_aws s3api head-bucket --bucket analytics 2>/dev/null; then
       run_aws s3 rm s3://analytics --recursive

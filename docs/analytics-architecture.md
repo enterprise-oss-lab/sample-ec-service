@@ -16,7 +16,9 @@ HadoopCatalog は採用しない。Trino 483 の Iceberg connector が公式に�
 - `./scripts/analytics-smoke.sh clean`は`analytics` bucketとcatalog volumeだけを削除し、`products` bucketや業務DB volumeには触れない。
 - Trinoと将来のFlinkで、REST Catalog URI、warehouse、ストレージendpoint、region、path-style設定および資格情報を一致させる。catalog DBとobject storageの片方だけを削除・復元してはいけない。
 
-`bronze`と`gold` namespaceは `./scripts/analytics-smoke.sh all` が冪等に作成する。同じスクリプトは`bronze.catalog_smoke`へParquetデータを書き込み、Trinoから読めることを検証する。Trino catalogにはIceberg以外を定義せず、Order／Inventory PostgreSQLへは接続しない。
+`bronze`と`gold` namespaceは`analytics/trino/init.sql`を実行する`analytics-namespace-init`サービスが冪等に作成する。通常の初期化は`docker compose -p sample-ec-service --env-file .env.example -f compose.yaml -f compose.analytics.yaml up -d analytics-namespace-init`で実行できる。
+
+`./scripts/analytics-smoke.sh all`は通常の初期化後、`analytics/tests/smoke.sql`を実行して`bronze.catalog_smoke`へテストデータを書き込み、Trinoから読めることを検証する。通常の初期化ではテストテーブルを作成しない。Trino catalogにはIceberg以外を定義せず、Order／Inventory PostgreSQLへは接続しない。
 
 Flink側の接続値は次のとおり。Iceberg connectorとジョブ自体はIssue #59で追加する。
 
