@@ -55,9 +55,7 @@ class PostgresOrderRepository(OrderRepository):
                         ],
                     )
 
-    async def save_confirmation(
-        self, order: Order, event: OrderConfirmedEvent
-    ) -> bool:
+    async def save_confirmation(self, order: Order, event: OrderConfirmedEvent) -> bool:
         async with self._pool.acquire() as conn:
             async with conn.transaction():
                 updated_id = await conn.fetchval(
