@@ -1,11 +1,16 @@
 from abc import ABC, abstractmethod
 
-from internal.domain.order import Order
+from internal.domain.order import Order, OrderConfirmedEvent
 
 
 class OrderRepository(ABC):
     @abstractmethod
     async def save(self, order: Order) -> None: ...
+
+    @abstractmethod
+    async def save_confirmation(
+        self, order: Order, event: OrderConfirmedEvent
+    ) -> bool: ...
 
     @abstractmethod
     async def find_by_id(self, id: str) -> Order: ...
