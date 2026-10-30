@@ -157,6 +157,24 @@ make test-auth-e2e
 - [Storefront README](frontends/storefront/README.md) — 開発コマンド、アーキテクチャ概要
 - [Admin README](frontends/admin/README.md) — 開発コマンド、アーキテクチャ概要、ローカル専用の注意
 
+## 任意のローカル分析基盤
+
+既存ECのRustFSを共有し、分析専用の`analytics` bucket、Iceberg REST catalog、Trinoを追加のCompose overlayとして起動できる。商品画像用の`products` bucketとは分離する。FlinkとCDCは後続Issueで追加する。
+
+```bash
+# 分析データだけを初期化し、bronze/gold作成、Icebergへの書き込み、Trinoで3行/合計60を検証
+./scripts/analytics-smoke.sh clean
+./scripts/analytics-smoke.sh all
+
+# 共有RustFS・catalog・Trinoを再起動した後も同じ結果を読めることを検証
+./scripts/analytics-smoke.sh restart-read
+
+# データを保持して停止
+./scripts/analytics-smoke.sh down
+```
+
+Trino UI は <http://localhost:28080>、共有RustFS consoleは <http://localhost:9001>。構成判断、固定バージョン、healthcheck、永続化と削除手順は [`docs/analytics-architecture.md`](docs/analytics-architecture.md) を参照する。既存ECだけを起動する従来の `docker compose up -d` には影響しない。Trinoのホスト側ポートは `ANALYTICS_TRINO_PORT` で変更できる。
+
 ## Observability (OpenTelemetry)
 
 order / inventory 両サービスは OpenTelemetry で計装され、**トレース・メトリクス・ログ**の3シグナルを
