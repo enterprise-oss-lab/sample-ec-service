@@ -1,0 +1,25 @@
+name: Flink confirmed sales
+on:
+  pull_request:
+    paths: [analytics/flink/**, compose.flink.yaml, .github/workflows/flink.yaml]
+  push:
+    branches: [main]
+    paths: [analytics/flink/**, compose.flink.yaml, .github/workflows/flink.yaml]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+          cache-dependency-path: analytics/flink/pom.xml
+      - run: mvn -B -f analytics/flink/pom.xml verify
+      - run: docker compose --env-file .env.example -f compose.yaml -f compose.analytics.yaml -f compose.flink.yaml config --quiet
+      - run: docker build -t sample-ec-confirmed-sales:local analytics/flink
+      - run: python3 analytics/flink/smoke.py
