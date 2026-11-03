@@ -1,0 +1,72 @@
+# Disposable integration environment, separate from the running EC stack.
+services:
+  kafka:
+    environment:
+      KAFKA_HEAP_OPTS: -Xms128m -Xmx256m
+    extends:
+      file: ../../compose.yaml
+      service: kafka
+    container_name: flink-smoke-kafka
+    ports: !reset []
+  kafka-init:
+    extends:
+      file: ../../compose.yaml
+      service: kafka-init
+    container_name: flink-smoke-kafka-init
+  rustfs:
+    extends:
+      file: ../../compose.yaml
+      service: rustfs
+    container_name: flink-smoke-rustfs
+    ports: !reset []
+  analytics-object-storage-init:
+    extends:
+      file: ../../compose.analytics.yaml
+      service: analytics-object-storage-init
+  analytics-catalog-init:
+    extends:
+      file: ../../compose.analytics.yaml
+      service: analytics-catalog-init
+  analytics-rest:
+    environment:
+      JAVA_TOOL_OPTIONS: -Xmx256m
+    extends:
+      file: ../../compose.analytics.yaml
+      service: analytics-rest
+    ports: !reset []
+  analytics-trino:
+    mem_limit: 1g
+    extends:
+      file: ../../compose.analytics.yaml
+      service: analytics-trino
+    ports: !reset []
+  analytics-namespace-init:
+    extends:
+      file: ../../compose.analytics.yaml
+      service: analytics-namespace-init
+  flink-jobmanager:
+    environment:
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: flink-jobmanager
+        jobmanager.memory.process.size: 768m
+        state.checkpoints.num-retained: 3
+        taskmanager.numberOfTaskSlots: 2
+    extends:
+      file: ../../compose.flink.yaml
+      service: flink-jobmanager
+    ports: !reset []
+  flink-taskmanager:
+    environment:
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: flink-jobmanager
+        taskmanager.memory.process.size: 1024m
+        taskmanager.numberOfTaskSlots: 2
+    extends:
+      file: ../../compose.flink.yaml
+      service: flink-taskmanager
+volumes:
+  kafka-data:
+  rustfs-data:
+  rustfs-logs:
+  analytics-catalog-data:
+  flink-checkpoints:
