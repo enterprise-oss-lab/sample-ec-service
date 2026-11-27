@@ -2,7 +2,7 @@
 
 ## 決定
 
-分析基盤は `compose.analytics.yaml` overlayに分離し、既存EC ComposeのRustFS 1.0.0-rc.4を共有する。商品画像用`products`とは別に分析専用`analytics` bucketを作り、Iceberg REST catalog 1.8.1とTrino 483から使う。Trinoと後続Issue #59で追加するFlinkは、同じREST Catalog (`http://analytics-rest:8181`) とwarehouse (`s3://analytics/`) を参照する。Catalogがメタデータの正本であり、エンジン固有のcatalogは持たない。
+分析基盤は `compose.analytics.yaml` overlayに分離し、既存EC ComposeのRustFS 1.0.0-rc.4を共有する。商品画像用`products`とは別に分析専用`analytics` bucketを作り、Iceberg REST catalog 1.8.1とTrino 483から使う。TrinoとFlinkは、同じREST Catalog (`http://analytics-rest:8181`) とwarehouse (`s3://analytics/`) を参照する。Catalogがメタデータの正本であり、エンジン固有のcatalogは持たない。
 
 HadoopCatalog は採用しない。Trino 483 の Iceberg connector が公式に列挙する catalog は Hive metastore、Glue、JDBC、REST、Nessie、Snowflake であり、HadoopCatalog は metadata catalog としてサポート対象に含まれない。両エンジンが公式に対応する REST catalog を共通境界とした。REST fixture の背後にある SQLite catalog と RustFS を named volume へ永続化するため、catalog のテーブルポインタと Iceberg metadata/data の両方が再起動後も残る。
 
@@ -12,15 +12,13 @@ HadoopCatalog は採用しない。Trino 483 の Iceberg connector が公式に�
 
 - 目安はDockerに3 GiB以上（Trino 1–2 GiB、残りをcatalogと共有RustFS）を割り当てる。
 - 各常駐サービスにhealthcheckがあり、`analytics` bucket作成とcatalog volumeのUID 1000への権限設定は冪等なone-shot serviceで行う。
-- 通常停止は`./scripts/analytics-smoke.sh down`。共有RustFSとnamed volumeは残る。
-- `./scripts/analytics-smoke.sh clean`は`analytics` bucketとcatalog volumeだけを削除し、`products` bucketや業務DB volumeには触れない。
-- Trinoと将来のFlinkで、REST Catalog URI、warehouse、ストレージendpoint、region、path-style設定および資格情報を一致させる。catalog DBとobject storageの片方だけを削除・復元してはいけない。
+- TrinoとFlinkで、REST Catalog URI、warehouse、ストレージendpoint、region、path-style設定および資格情報を一致させる。catalog DBとobject storageの片方だけを削除・復元してはいけない。
 
 `bronze`と`gold` namespaceは`analytics/trino/init.sql`を実行する`analytics-namespace-init`サービスが冪等に作成する。通常の初期化は`docker compose -p sample-ec-service --env-file .env.example -f compose.yaml -f compose.analytics.yaml up -d analytics-namespace-init`で実行できる。
 
-`./scripts/analytics-smoke.sh all`は通常の初期化後、`analytics/tests/smoke.sql`を実行して`bronze.catalog_smoke`へテストデータを書き込み、Trinoから読めることを検証する。通常の初期化ではテストテーブルを作成しない。Trino catalogにはIceberg以外を定義せず、Order／Inventory PostgreSQLへは接続しない。
+注文から分析明細までの確認は `make test-analytics-e2e` で行う。Trino catalogにはIceberg以外を定義せず、Order／Inventory PostgreSQLへは接続しない。
 
-Flink側の接続値は次のとおり。Iceberg connectorとジョブ自体はIssue #59で追加する。
+Flink側の接続値は次のとおり。ジョブの詳細は [Flink 実装手順](flink-confirmed-sales.md) を参照。
 
 | 設定 | 値 |
 |---|---|

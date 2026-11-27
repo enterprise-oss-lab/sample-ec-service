@@ -1,4 +1,4 @@
-.PHONY: test-auth-e2e lint format-check format lint-inventory format-check-inventory format-inventory lint-order format-check-order format-order lint-admin format-check-admin format-admin lint-storefront format-check-storefront format-storefront
+.PHONY: test-auth-e2e test-analytics-e2e lint format-check format lint-inventory format-check-inventory format-inventory lint-order format-check-order format-order lint-admin format-check-admin format-admin lint-storefront format-check-storefront format-storefront
 
 test-auth-e2e:
 	node scripts/auth-e2e.mjs
@@ -44,3 +44,6 @@ format-check-storefront:
 
 format-storefront:
 	cd frontends/storefront && pnpm format
+
+test-analytics-e2e:
+	python3 analytics/e2e/run.py

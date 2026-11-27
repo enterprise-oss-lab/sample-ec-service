@@ -50,7 +50,6 @@ docker compose -p sample-ec-service --env-file .env.example \
 起動後、復元済み checkpoint と RUNNING 状態、次の checkpoint 成功を確認する。
 停止は同じ Compose 指定で `stop flink-jobmanager flink-taskmanager`。
 復旧用 volume や Catalog / analytics bucket を片方だけ消してはいけない。
-`analytics-smoke.sh clean` は実データの catalog / bucket も消すため、Flink 稼働中は実行しない。
 
 ## 検証
 
@@ -58,10 +57,9 @@ docker compose -p sample-ec-service --env-file .env.example \
 mvn -B -f analytics/flink/pom.xml verify
 # Java 環境がない場合は Dockerfile のビルドでもテストする
 docker build -t sample-ec-confirmed-sales:local analytics/flink
-python3 analytics/flink/smoke.py
+make test-analytics-e2e
 ```
 
-テストは複数明細・金額検証・不正値・event_id 再送・checkpoint snapshot/restore 後の重複排除を検証する。
-smoke.py は専用 Compose project と専用 volume を作り、Kafka / Iceberg / Trino の実接続と
-JobManager 再作成後の checkpoint 復元を検証する。終了時にその専用環境だけを削除する。
-Trino からは `iceberg.bronze.order_confirmed_events` と `iceberg.gold.fact_order_line` を参照する。
+単体テストは複数明細・金額検証・不正値・event_id 再送・checkpoint snapshot/restore 後の重複排除を検証する。
+E2E は実際の注文作成・在庫予約・注文確定・CDC 配信から Trino の全明細確認と再送時の非二重計上までを確認する。
+[E2E の実行方法とサンプル SQL](analytics-e2e.md) を参照。

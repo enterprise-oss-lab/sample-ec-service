@@ -1,0 +1,31 @@
+name: Analytics Phase 1 E2E
+on:
+  pull_request:
+    paths:
+      - analytics/**
+      - compose*.yaml
+      - services/order/**
+      - services/inventory/**
+      - infrastructure/debezium/**
+      - .github/workflows/analytics-e2e.yaml
+  push:
+    branches: [main]
+    paths:
+      - analytics/**
+      - compose*.yaml
+      - services/order/**
+      - services/inventory/**
+      - infrastructure/debezium/**
+      - .github/workflows/analytics-e2e.yaml
+permissions:
+  contents: read
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate isolated Compose
+        run: docker compose --env-file .env.example -f analytics/e2e/compose.yaml config --quiet
+      - name: Order to confirmed sales E2E
+        run: python3 analytics/e2e/run.py
