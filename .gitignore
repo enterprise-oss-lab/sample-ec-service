@@ -41,3 +41,5 @@ htmlcov/
 .pnpm-store/
 
 .DS_Store
+# Flink Maven build
+analytics/flink/target/
