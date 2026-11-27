@@ -30,8 +30,6 @@ services:
   analytics-rest:
     environment:
       JAVA_TOOL_OPTIONS: -Xmx256m
-      # SQLite needs one JDBC connection to avoid stale read snapshots.
-      CATALOG_CLIENTS: "1"
     extends:
       file: ../../compose.analytics.yaml
       service: analytics-rest

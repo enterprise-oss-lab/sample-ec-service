@@ -136,7 +136,14 @@ def main():
     try:
         compose("down", "-v", "--remove-orphans")
         subprocess.run(
-            [*COMPOSE, "build", "inventory", "order-service", "flink-jobmanager"],
+            [
+                *COMPOSE,
+                "build",
+                "inventory",
+                "order-service",
+                "flink-jobmanager",
+                "analytics-rest",
+            ],
             check=True,
             timeout=900,
         )
