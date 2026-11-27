@@ -21,5 +21,3 @@ jobs:
           cache-dependency-path: analytics/flink/pom.xml
       - run: mvn -B -f analytics/flink/pom.xml verify
       - run: docker compose --env-file .env.example -f compose.yaml -f compose.analytics.yaml -f compose.flink.yaml config --quiet
-      - run: docker build -t sample-ec-confirmed-sales:local analytics/flink
-      - run: python3 analytics/flink/smoke.py

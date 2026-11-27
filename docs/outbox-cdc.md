@@ -72,13 +72,7 @@ publication `order_outbox` はOrder DB volumeに保持する。通常の再起�
 削除しない。connector停止中はslotがWALを保持するため、長期間停止する際はDB容量を確認する。
 DBやKafkaのvolumeを片側だけ初期化した場合の整合性復旧は自動化していない。
 
-## スモーク検証
+## 検証
 
-```bash
-python3 infrastructure/debezium/smoke.py
-```
-
-Docker Compose 2.24.4以上（`!override`対応）が必要。専用 `outbox-smoke` projectで
-空のPostgreSQL/Kafkaから起動し、commit済みのJSON payload、rollback・未commit行の非配信、
-Connect停止中のINSERTの再起動後配信、初期化の再実行を検証する。
-専用volumeは前後に削除し、既存ECコンテナとvolumeは操作しない。
+注文作成から在庫予約・注文確定・CDC配信・Trino反映、同一イベント再送時の非二重計上は
+`make test-analytics-e2e` でまとめて確認する。[E2E の実行方法](analytics-e2e.md) を参照。

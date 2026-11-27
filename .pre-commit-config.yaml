@@ -6,8 +6,8 @@ repos:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
-        # Compose validates its !reset / !override extension tags in the CDC CI.
-        exclude: ^(?:infrastructure/debezium|analytics/flink)/compose\.smoke\.yaml$
+        # Compose validates its !reset / !override extension tags in integration CI.
+        exclude: ^analytics/e2e/compose\.yaml$
       - id: check-json
         exclude: tsconfig.*\.json$
       - id: check-merge-conflict

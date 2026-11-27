@@ -23,7 +23,8 @@ services:
     restart: "no"
 
   analytics-rest:
-    image: apache/iceberg-rest-fixture:1.8.1
+    build: ./analytics/catalog
+    image: sample-ec-iceberg-rest:1.12.0
     depends_on:
       analytics-object-storage-init:
         condition: service_completed_successfully
@@ -33,7 +34,8 @@ services:
       AWS_ACCESS_KEY_ID: rustfsadmin
       AWS_SECRET_ACCESS_KEY: rustfsadmin # pragma: allowlist secret
       AWS_REGION: us-east-1
-      CATALOG_CATALOG_NAME: analytics
+      # 1.8.1 used this fixed name; preserve existing JDBC catalog entries.
+      CATALOG_CATALOG_NAME: rest_backend
       CATALOG_WAREHOUSE: s3://analytics/
       CATALOG_URI: jdbc:sqlite:/var/lib/iceberg/catalog.db?journal_mode=WAL
       CATALOG_IO__IMPL: org.apache.iceberg.aws.s3.S3FileIO

@@ -162,19 +162,10 @@ make test-auth-e2e
 
 ## 任意のローカル分析基盤
 
-既存ECのRustFSを共有し、分析専用の`analytics` bucket、Iceberg REST catalog、Trinoを追加のCompose overlayとして起動できる。商品画像用の`products` bucketとは分離する。FlinkとCDCは後続Issueで追加する。
+既存ECのRustFSを共有し、分析専用の`analytics` bucket、Iceberg REST catalog、Trinoを追加のCompose overlayとして起動できる。商品画像用の`products` bucketとは分離する。注文確定を Outbox → Debezium → Kafka → Flink → Iceberg → Trino へ連携する。
 
-```bash
-# 分析データだけを初期化し、bronze/gold作成、Icebergへの書き込み、Trinoで3行/合計60を検証
-./scripts/analytics-smoke.sh clean
-./scripts/analytics-smoke.sh all
-
-# 共有RustFS・catalog・Trinoを再起動した後も同じ結果を読めることを検証
-./scripts/analytics-smoke.sh restart-read
-
-# データを保持して停止
-./scripts/analytics-smoke.sh down
-```
+注文作成から在庫予約・注文確定・Trino への反映、同一イベント再送時の非二重計上は
+`make test-analytics-e2e` で確認できる。[E2E の実行方法と売上集計 SQL](docs/analytics-e2e.md) を参照。
 
 Trino UI は <http://localhost:28080>、共有RustFS consoleは <http://localhost:9001>。構成判断、固定バージョン、healthcheck、永続化と削除手順は [`docs/analytics-architecture.md`](docs/analytics-architecture.md) を参照する。既存ECだけを起動する従来の `docker compose up -d` には影響しない。Trinoのホスト側ポートは `ANALYTICS_TRINO_PORT` で変更できる。
 
